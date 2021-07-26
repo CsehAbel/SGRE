@@ -246,5 +246,25 @@ if __name__ == '__main__':
     attachment_sgre.set_index('ip',verify_integrity=True,inplace=True)
 
     df_joined=attachment_sgre.join(df_qc,lsuffix='_caller', rsuffix='_other')
+    df_grouped = df_joined.groupby(by=df_joined.index)
+    list_to_df=[]
+    for name,group in df_grouped:
+        app_ids="no match"
+        app_ids = ",".join([g for g in group.app_id.values if not pandas.isnull(g)])
+        #find ,([^,]+),
+        #replace [0],group.\1[0],group.
+        #omit group.wuser[0],group.APP ID[0]
+        first_values_from_group=[group.dns[0],group.c[0],group.l[0],group.sys_type[0],group.corpflag[0],group.info_extra[0],group["info"].values[0],group.mac[0],group.macprovider[0],group.hostname[0],group.domain[0],group.host_dn[0],group.managedby[0],group.managedbygid[0],group.managed_by_mail[0],group.os[0],group.description[0],group.region[0],group.last_modified[0],group.owner[0],group.snic_comment[0],group.ip_cidr[0],group.app_id[0],group.tufin_id[0],group.excel_row_line[0]]
+        first_values_from_group.insert(0,app_ids)
+        first_values_from_group.insert(0,name)
+        list_to_df.append(first_values_from_group)
+    column_list = ["ip","app_ids", "dns", "c", "l", "sys_type", "corpflag", "info_extra", "info", "mac", "macprovider",
+                   "hostname", "domain", "host_dn", "managedby", "managedbygid", "managed_by_mail", "os", "description",
+                   "region", "last_modified", "owner", "snic_comment", "ip_cidr", "app_id", "tufin_id",
+                   "excel_row_line"]
+
+    #packing the app_ids inside a field
+
+    packed_group_df = pandas.DataFrame(data=list_to_df,columns=column_list)
 
     print("Done")
