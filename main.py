@@ -72,7 +72,6 @@ def test_matches(attachment):
 
             patternPrefixCommaSeparated = re.compile('^\s*([1-9][0-9]{10,11})\s*$')
             resultPrefixCommaSeparated = patternPrefixCommaSeparated.match(i)
-
             if resultPrefixCommaSeparated:
                 ip_trsfrmd=ticket_automatisierung.correctMatchedPrefix(i)
                 inner_matches["commaseparated"]=True
@@ -88,7 +87,7 @@ def test_matches(attachment):
                 #ToDo for i in  range(quadToInt(group(1)),quadToInt(group(2))+1)
 
             if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
-                print("no regex match for 'field'")
+                print("no regex match for 'field'{}".format(i))
 
             numberofmatches=0
             for m in inner_matches.values():
@@ -97,21 +96,128 @@ def test_matches(attachment):
             if numberofmatches > 1:
                 print("too many regex matches")
 
+def get_processed_qc_as_list(attachment_qc):
 
+    test_matches(attachment_qc)
+    # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
+    list_dict_transformed = []
+    for index, row in attachment_qc.iterrows():
+        dict_raw_field = {"app_id": row["APP ID"], "tufin_id": row["Tufin ID"], "ips_field": row["Ips"]}
+        # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
+        field = dict_raw_field["ips_field"]
+        field_list = []
+        if (not pandas.isnull(field)) and field.find(";") != -1:
+            field_list = field.split(";")
+        elif (not pandas.isnull(field)) and field.find("\n") != -1:
+            field_list = field.split("\n")
 
+        list_unpacked_ips = []
+        for i in field_list:
+            i = i.strip(u'\u200b')
+
+            patternPrefix = re.compile('^\s*(([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3}))\s*$')
+            resultPrefix = patternPrefix.match(i)
+            if resultPrefix:
+                prefix = resultPrefix.group(1)
+                list_unpacked_ips.append(prefix)
+
+            patternPrefixCIDR = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/(\d+)\s*$')
+            resultPrefixCIDR = patternPrefixCIDR.match(i)
+            if resultPrefixCIDR:
+                prefix2 = resultPrefixCIDR.group(1)
+                cidr2 = ticket_automatisierung.correctAndCheckMatchedMask(resultPrefixCIDR.group(2))
+
+                base = ticket_automatisierung.integerToDecimalDottedQuad(
+                    ticket_automatisierung.decimalDottedQuadToInteger(prefix2) & ticket_automatisierung.makeIntegerMask(
+                        cidr2))
+                if base != prefix2:
+                    print("Not a network Adresse (possible ip base %s)" % base)
+
+                int_prefix_top = (~ticket_automatisierung.makeIntegerMask(
+                    cidr2)) | ticket_automatisierung.decimalDottedQuadToInteger(prefix2)
+                if int_prefix_top - 2 * 32 == -4117887025:
+                    print("Test singed to unsigned conversion")
+                    # ToDo breakpoint setzen, Werte die die for Schleife ausspuckt mit den erwarteten Ergebnisse zu vergleichen
+                    # Modified
+                    #    ticket_automatisierung.decimalDottedQuadToInteger()
+                    # to convert signed integers to unsigned.
+                    # Das Folgende ist redundant, überreichlich, ersetzt:
+                    #   int_prefix_top == -4117887025:
+                    #   if int_prefix_top < 0:
+                    #      int_prefix_top = int_prefix_top + (2**32)
+
+                prefix_top = ticket_automatisierung.integerToDecimalDottedQuad(int_prefix_top)
+                print("netw.adrr.:{}".format(base))
+                for j in range(ticket_automatisierung.decimalDottedQuadToInteger(base) + 1,
+                               ticket_automatisierung.decimalDottedQuadToInteger(
+                                       ticket_automatisierung.integerToDecimalDottedQuad(int_prefix_top)) + 1):
+                    list_unpacked_ips.append(ticket_automatisierung.integerToDecimalDottedQuad(j))
+
+            patternPrefixRange = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\.([0-9]{1,3})-(\d+)\s*$')
+            resultPrefixRange = patternPrefixRange.match(i)
+            if resultPrefixRange:
+                prefix3 = resultPrefixRange.group(1)
+                fourthoctet3 = resultPrefixRange.group(2)
+                fifthoctet3 = resultPrefixRange.group(3)
+
+                start_ip = ".".join([prefix3, fourthoctet3])
+                end_ip = ".".join([prefix3, fifthoctet3])
+                for j in range(ticket_automatisierung.decimalDottedQuadToInteger(start_ip) + 1,
+                               ticket_automatisierung.decimalDottedQuadToInteger(end_ip) + 1):
+                    list_unpacked_ips.append(ticket_automatisierung.integerToDecimalDottedQuad(j))
+
+            patternPrefixCommaSeparated = re.compile('^\s*([1-9][0-9]{10,11})\s*$')
+            resultPrefixCommaSeparated = patternPrefixCommaSeparated.match(i)
+            if resultPrefixCommaSeparated:
+                ip_trsfrmd = ticket_automatisierung.correctMatchedPrefix(i)
+                list_unpacked_ips.append(ip_trsfrmd)
+
+            patternBindestrich = re.compile(
+                '^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})-([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\s*$')
+            resultBindestrich = patternBindestrich.match(i)
+            if resultBindestrich:
+                start_ip_b = resultBindestrich.group(1)
+                end_ip_b = resultBindestrich.group(2)
+                for j in range(ticket_automatisierung.decimalDottedQuadToInteger(start_ip_b),
+                               ticket_automatisierung.decimalDottedQuadToInteger(start_ip_b) + 1):
+                    list_unpacked_ips.append(ticket_automatisierung.integerToDecimalDottedQuad(j))
+
+        for element in list_unpacked_ips:
+            list_dict_transformed.append(
+                {"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)})
+
+    return list_dict_transformed
+
+'''def get_processed_sgre_as_list(attachment_sgre):
+    
+    list_dict = []
+    for index, row in attachment_sgre.iterrows():
+        #find \t([^\t]+)\t
+        #replace "\)row\("\1"\), row\("
+'''
+
+def write_duplicates_to_xlsx(df_qc):
+    list_duplicated = []
+    dplctd = df_qc.index.duplicated(keep='first')
+    for i in range(len(dplctd)):
+        if dplctd[i]:
+            list_duplicated.append({"ignored": "ignored", "unpacked_ip": df_qc.iloc[[i]].index[0],
+                                    "excel_row_line": df_qc.iloc[[i]].excel_row_line.values[0]})
+
+    df_duplicates = pandas.DataFrame(list_duplicated)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    for r in dataframe_to_rows(df_duplicates, index=True, header=True):
+        ws.append(r)
+
+    today = datetime.date.today()
+    path_to_outfile = "../QualityCheck_duplicates_" + today.strftime("%d%b%Y") + ".xlsx"
+    wb.save(path_to_outfile)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
-    filepath_sgre = get_cli_args().sgre
-    if os.path.exists(filepath_sgre):
-        sgre = pandas.read_excel(filepath_sgre, sheet_name=None,
-                                       index_col=None, engine='openpyxl')
-    else:
-        raise FileNotFoundError(filepath_sgre)
-
-    attachment_sgre = pandas.read_excel(filepath_sgre, index_col=None, dtype=str, engine='openpyxl')
-
     filepath_qc = get_cli_args().qualitycheck
     if os.path.exists(filepath_qc):
         sgre = pandas.read_excel(filepath_qc, sheet_name=None,
@@ -120,71 +226,25 @@ if __name__ == '__main__':
         raise FileNotFoundError(filepath_qc)
 
     attachment_qc = pandas.read_excel(filepath_qc, index_col=None, dtype=str, engine='openpyxl')
+    
+    df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
+    #ToDo df_qc.iloc[[i]] gibt die Reihe zurück wie bekommt man die einzelne Felder z.B. ip,excel_row_line,app_id_tufin_id
+    df_qc.set_index('ip', inplace=True)#, verify_integrity=True)
 
-    test_matches(attachment_qc)
-    # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
-    list_dict_transformed=[]
-    for index, row in attachment_qc.iterrows():
-            dict_raw_field={"app_id":row["APP ID"],"tufin_id":row["Tufin ID"],"ips_field":row["Ips"]}
-            #dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
-            field = dict_raw_field["ips_field"]
-            field_list=field.split(";")
-            list_unpacked_ips=[]
-            for i in field_list:
+    write_duplicates_to_xlsx(df_qc)
 
+    #df_qc.drop_duplicates("ip",inplace=True)
 
-                patternPrefix = re.compile('^\s*(([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3}))\s*$')
-                resultPrefix = patternPrefix.match(i)
-                if resultPrefix:
-                    prefix=resultPrefix.group(1)
-                    list_unpacked_ips.append(prefix)
+    filepath_sgre = get_cli_args().sgre
+    if os.path.exists(filepath_sgre):
+        sgre = pandas.read_excel(filepath_sgre, sheet_name=None,
+                                 index_col=None, engine='openpyxl')
+    else:
+        raise FileNotFoundError(filepath_sgre)
 
+    attachment_sgre = pandas.read_excel(filepath_sgre, index_col=None, dtype=str, engine='openpyxl')
+    attachment_sgre.set_index('ip',verify_integrity=True,inplace=True)
 
-                patternPrefixCIDR = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/(\d+)$')
-                resultPrefixCIDR = patternPrefixCIDR.match(i)
-                if resultPrefixCIDR:
-                    prefix2=resultPrefixCIDR.group(1)
-                    cidr2=ticket_automatisierung.correctAndCheckMatchedMask(resultPrefixCIDR.group(2))
-
-                    base = ticket_automatisierung.integerToDecimalDottedQuad(
-                        ticket_automatisierung.decimalDottedQuadToInteger(prefix2) & ticket_automatisierung.makeIntegerMask(cidr2))
-                    if base != prefix2:
-                        print("Not a network Adresse (possible ip base %s)" % base)
-
-                    int_prefix_top = (~ticket_automatisierung.makeIntegerMask(cidr2)) | ticket_automatisierung.decimalDottedQuadToInteger(prefix2)
-                    '''
-                    Modified
-                        ticket_automatisierung.decimalDottedQuadToInteger()
-                    to convert signed integers to unsigned.
-                    
-                    Das Folgende ist redundant, überreichlich, ersetzt:
-                        int_prefix_top == -4117887025:
-                            
-                        if int_prefix_top < 0:
-                            int_prefix_top = int_prefix_top + (2**32)
-                    '''
-                    prefix_top = ticket_automatisierung.integerToDecimalDottedQuad(int_prefix_top)
-                    print(base)
-                    print(base)
-                    for i in range(ticket_automatisierung.decimalDottedQuadToInteger(base) + 1, ticket_automatisierung.decimalDottedQuadToInteger(
-                            ticket_automatisierung.integerToDecimalDottedQuad(int_prefix_top)) + 1):
-                        list_unpacked_ips.append(ticket_automatisierung.integerToDecimalDottedQuad(i))
-
-
-                patternPrefixRange = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\.([0-9]{1,3})-(\d+)$')
-                resultPrefixRange = patternPrefixRange.match(i)
-                if resultPrefixRange:
-                    prefix3 = resultPrefixRange.group(1)
-                    fourthoctet3= resultPrefixRange.group(2)
-                    fifthoctet3 = resultPrefixRange.group(3)
-
-                    start_ip=".".join([prefix3,fourthoctet3])
-                    end_ip=".".join([prefix3,fifthoctet3])
-                    for i in range(ticket_automatisierung.decimalDottedQuadToInteger(start_ip) + 1, ticket_automatisierung.decimalDottedQuadToInteger(int_prefix_top) + 1):
-                        list_unpacked_ips.append(ticket_automatisierung.integerToDecimalDottedQuad(i))
-
-
-            for l in list_unpacked_ips:
-                list_dict_transformed.append({"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": l})
+    df_joined=attachment_sgre.join(df_qc,lsuffix='_caller', rsuffix='_other')
 
     print("Done")

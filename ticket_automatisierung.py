@@ -91,6 +91,13 @@ def decimalDottedQuadToInteger(dottedquad):
         ip_as_int=ip_as_int + 2**32
     return ip_as_int
 
+def old_decimalDottedQuadToInteger(dottedquad):
+    #convert decimal dotted quad string to long integer"
+    #@ is native, ! is big-endian, native didnt work" \
+    #returned the octects reversed main.integerToDecimalDottedQuad(main.decimalDottedQuadToInteger('149.246.14.224'))"
+    return struct.unpack('!i', socket.inet_aton(dottedquad))[0]
+
+
 def isIntegerAddressInIntegerNetwork(ip,net):
    #Is an address in a network"
    return ip & net == net
