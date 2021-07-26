@@ -45,12 +45,15 @@ def test_matches(attachment):
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
         field = dict_raw_field["ips_field"]
         field_list=[]
-        if not pandas.isnull(field):
+        if (not pandas.isnull(field)) and field.find(";") != -1:
             field_list = field.split(";")
+        elif (not pandas.isnull(field)) and field.find("\n") != -1:
+            field_list = field.split("\n")
 
         for i in field_list:
+            i=i.strip(u'\u200b')
 
-            inner_matches = {"single": False, "cidr": False, "range": False}
+            inner_matches = {"single": False, "cidr": False, "range": False, "commaseparated":False, "bindestrich":False}
 
             patternPrefix = re.compile('^\s*(([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3}))\s*$')
             resultPrefix = patternPrefix.match(i)
@@ -67,7 +70,24 @@ def test_matches(attachment):
             if resultPrefixRange:
                 inner_matches["range"]=True
 
-            if not any(inner_matches.values()):
+            patternPrefixCommaSeparated = re.compile('^\s*([1-9][0-9]{10,11})\s*$')
+            resultPrefixCommaSeparated = patternPrefixCommaSeparated.match(i)
+
+            if resultPrefixCommaSeparated:
+                ip_trsfrmd=ticket_automatisierung.correctMatchedPrefix(i)
+                inner_matches["commaseparated"]=True
+
+            patternBindestrich = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})-([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\s*$')
+            resultBindestrich = patternBindestrich.match(i)
+            if resultBindestrich:
+                inner_matches["bindestrich"] = True
+                start_ip_b=resultBindestrich.group(1)
+                end_ip_b=resultBindestrich.group(2)
+                #ToDo resultBindestrich.group(1), group(2)
+                #ToDo if group(1) < 0: group(1)=group(1) + 2**32
+                #ToDo for i in  range(quadToInt(group(1)),quadToInt(group(2))+1)
+
+            if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
                 print("no regex match for 'field'")
 
             numberofmatches=0
@@ -132,6 +152,17 @@ if __name__ == '__main__':
                         print("Not a network Adresse (possible ip base %s)" % base)
 
                     int_prefix_top = (~ticket_automatisierung.makeIntegerMask(cidr2)) | ticket_automatisierung.decimalDottedQuadToInteger(prefix2)
+                    '''
+                    Modified
+                        ticket_automatisierung.decimalDottedQuadToInteger()
+                    to convert signed integers to unsigned.
+                    
+                    Das Folgende ist redundant, überreichlich, ersetzt:
+                        int_prefix_top == -4117887025:
+                            
+                        if int_prefix_top < 0:
+                            int_prefix_top = int_prefix_top + (2**32)
+                    '''
                     prefix_top = ticket_automatisierung.integerToDecimalDottedQuad(int_prefix_top)
                     print(base)
                     print(base)
