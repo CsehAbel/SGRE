@@ -197,7 +197,8 @@ def get_processed_qc_as_list(attachment_qc):
 
         for element in list_unpacked_ips:
             list_dict_transformed.append(
-                {"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)})
+                #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
+                {"ip": element,"ACP #":row['ACP #'],"APP ID":row['APP ID'],"Tufin ID":row['Tufin ID'],"Source":row['Source'],"Ips":row['Ips'],"Protocol type port":row['Protocol type port'],"FQDNs":row['FQDNs'],"TSA":row['TSA'],"new TSA?":row['new TSA?'],"Application Name":row['Application Name'],"Application Manager\'s mail":row['Application Manager\'s mail'],"Status":row['Status']})
 
     return list_dict_transformed
 
