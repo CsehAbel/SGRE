@@ -21,14 +21,10 @@ from openpyxl.styles import Alignment
 import ticket_automatisierung
 
 def get_cli_args():
-    parser = argparse.ArgumentParser("Collecting details for CYS Report")
-    parser.add_argument(
-        '--sgre', dest="sgre", type=str, required=True,
-        help="Path of SC-Report_CYS.xlsx"
-        )
+    parser = argparse.ArgumentParser("Unpacking Quality Check xlsx")
     parser.add_argument(
         '--qualitycheck', dest="qualitycheck", type=str, required=True,
-        help="Path of SC-Report_CYS.xlsx"
+        help="Path of QualityCheck.xlsx"
     )
     #ToDo add command line argument for excel file
     args = parser.parse_args(shlex.split(" ".join(sys.argv[1:])))
@@ -205,39 +201,12 @@ def get_processed_qc_as_list(attachment_qc):
 
     return list_dict_transformed
 
-'''def get_processed_sgre_as_list(attachment_sgre):
-    
-    list_dict = []
-    for index, row in attachment_sgre.iterrows():
-        #find \t([^\t]+)\t
-        #replace "\)row\("\1"\), row\("
-'''
-
-def write_duplicates_to_xlsx(df_qc):
-    list_duplicated = []
-    dplctd = df_qc.index.duplicated(keep='first')
-    for i in range(len(dplctd)):
-        if dplctd[i]:
-            list_duplicated.append({"ignored": "ignored", "unpacked_ip": df_qc.iloc[[i]].index[0],
-                                    "excel_row_line": df_qc.iloc[[i]].excel_row_line.values[0]})
-
-    df_duplicates = pandas.DataFrame(list_duplicated)
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-
-    for r in dataframe_to_rows(df_duplicates, index=True, header=True):
-        ws.append(r)
-
-    today = datetime.date.today()
-    path_to_outfile = "./QualityCheck_duplicates_" + today.strftime("%d%b%Y") + ".xlsx"
-    wb.save(path_to_outfile)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     filepath_qc = get_cli_args().qualitycheck
     if os.path.exists(filepath_qc):
-        sgre = pandas.read_excel(filepath_qc, sheet_name=None,
+        qc = pandas.read_excel(filepath_qc, sheet_name=None,
                                  index_col=None, engine='openpyxl')
     else:
         raise FileNotFoundError(filepath_qc)
@@ -245,58 +214,15 @@ if __name__ == '__main__':
     attachment_qc = pandas.read_excel(filepath_qc, index_col=None, dtype=str, engine='openpyxl')
     
     df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
-    #ToDo df_qc.iloc[[i]] gibt die Reihe zurück wie bekommt man die einzelne Felder z.B. ip,excel_row_line,app_id_tufin_id
-    df_qc.set_index('ip', inplace=True)#, verify_integrity=True)
-
-    write_duplicates_to_xlsx(df_qc)
-
-    #df_qc.drop_duplicates("ip",inplace=True)
-
-    filepath_sgre = get_cli_args().sgre
-    if os.path.exists(filepath_sgre):
-        sgre = pandas.read_excel(filepath_sgre, sheet_name=None,
-                                 index_col=None, engine='openpyxl')
-    else:
-        raise FileNotFoundError(filepath_sgre)
-
-    attachment_sgre = pandas.read_excel(filepath_sgre, index_col=None, dtype=str, engine='openpyxl')
-    attachment_sgre.set_index('ip',verify_integrity=True,inplace=True)
-
-    df_joined=attachment_sgre.join(df_qc,lsuffix='_caller', rsuffix='_other')
-    df_grouped = df_joined.groupby(by=df_joined.index)
-    list_to_df=[]
-    for name,group in df_grouped:
-        app_ids="no match"
-        app_ids = ",".join([g for g in group.app_id.values if not pandas.isnull(g)])
-        tufin_ids = "no match"
-        tufin_ids = ",".join([h for h in group.tufin_id.values if not pandas.isnull(h)])
-        excel_row_lines = "no match"
-        excel_row_lines = ",".join([("%g" %j) for j in group.excel_row_line.values if not pandas.isnull(j)])
-        #find ,([^,]+),
-        #replace [0],group.\1[0],group.
-        #omit group.wuser[0],group.APP ID[0]
-        first_values_from_group=[group.dns[0],group.c[0],group.l[0],group.sys_type[0],group.corpflag[0],group.info_extra[0],group["info"].values[0],group.mac[0],group.macprovider[0],group.hostname[0],group.domain[0],group.host_dn[0],group.managedby[0],group.managedbygid[0],group.managed_by_mail[0],group.os[0],group.description[0],group.region[0],group.last_modified[0],group.owner[0],group.snic_comment[0],group.ip_cidr[0]]
-        first_values_from_group.insert(0,excel_row_lines)
-        first_values_from_group.insert(0,tufin_ids)
-        first_values_from_group.insert(0,app_ids)
-        first_values_from_group.insert(0,name)
-        list_to_df.append(first_values_from_group)
-    column_list = ["ip","app_ids","tufin_ids","excel_row_lines", "dns", "c", "l", "sys_type", "corpflag", "info_extra", "info", "mac", "macprovider",
-                   "hostname", "domain", "host_dn", "managedby", "managedbygid", "managed_by_mail", "os", "description",
-                   "region", "last_modified", "owner", "snic_comment", "ip_cidr"]
-
-    #packing the app_ids inside a field
-
-    packed_group_df = pandas.DataFrame(data=list_to_df,columns=column_list)
 
     wb = openpyxl.Workbook()
     ws = wb.active
 
-    for r in dataframe_to_rows(packed_group_df, index=True, header=True):
+    for r in dataframe_to_rows(df_qc, index=False, header=True):
         ws.append(r)
 
     today = datetime.date.today()
-    path_to_outfile = "./QualityCh_SGRE_b_targets_joined" + today.strftime("%d%b%Y") + ".xlsx"
+    path_to_outfile = "./QualityCh_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
     wb.save(path_to_outfile)
 
     print("Done")
