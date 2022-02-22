@@ -149,7 +149,7 @@ def test_matches(attachment):
     for index, row in attachment.iterrows():
 
 
-        dict_raw_field = {"app_id": [], "tufin_id": row["Tufin ID"], "ips_field": row["IPs"]}
+        dict_raw_field = {"app_id": [], "tufin_id": row["Tufin ID"], "ips_field": row["Destination IPs"]}
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
         field = dict_raw_field["ips_field"]
         field_list=[]
@@ -195,7 +195,7 @@ def test_matches(attachment):
                 #ToDo for i in  range(quadToInt(group(1)),quadToInt(group(2))+1)
 
             if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
-                print("no regex match for 'field'{}".format(i))
+                print("no regex match for 'field'%s index:%d row:%s" %(i,index,row))
 
             numberofmatches=0
             for m in inner_matches.values():
@@ -272,7 +272,7 @@ def get_processed_qc_as_list(attachment_qc):
                     #      int_prefix_top = int_prefix_top + (2**32)
 
                 prefix_top = integerToDecimalDottedQuad(int_prefix_top)
-                print("netw.adrr.:{}".format(base))
+                #print("netw.adrr.:{}".format(base))
                 for j in range(decimalDottedQuadToInteger(base) + 1,
                                decimalDottedQuadToInteger(
                                        integerToDecimalDottedQuad(int_prefix_top)) + 1):
@@ -306,16 +306,17 @@ def get_processed_qc_as_list(attachment_qc):
                 for j in range(decimalDottedQuadToInteger(start_ip_b),
                                decimalDottedQuadToInteger(start_ip_b) + 1):
                     list_unpacked_ips.append(integerToDecimalDottedQuad(j))
-
+        #"IPs","APP ID","Protocol type port","FQDNs","Application Name"
+        #"Last modify date":row["Last \nmodify\n date"] ignored in dictionary below
         for element in list_unpacked_ips:
             list_dict_transformed.append(
                 #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
-                {"Change Type":row["Change Type"],"Tufin ID":row['Tufin ID'],"Last modify date":row["Last \nmodify\n date"],
+                {"IPs":element,"Change Type":row["Change Type"],"Tufin ID":row['Tufin ID'],
                  "Last modified by Version":row["Last modified by Version"],"requested by":row["requested by"],"approved_by":row["approved by"],
-                 "APP ID":row["APP ID"],"Source":row["Source"],"Destination FQDNs":row["Destination FQDNs"],
-                 "Destination Info":row["Destination Info"],"Protocol type_port":row["Protocol type_port"],
+                 "APP ID":row["APP ID"],"Source":row["Source"],"FQDNs":row["Destination FQDNs"],
+                 "Application Name":row["Destination Info"],"Protocol type port":row["Protocol type_port"],
                  "ACP Level":row['ACP Level'],"TSA expiration date":row["TSA expiration date"],"Application Requester":row["Application Requester"]
-                    "Comment":row["Comment"]})
+                    ,"Comment":row["Comment"]})
 
     return list_dict_transformed
 
@@ -329,7 +330,7 @@ if __name__ == '__main__':
     else:
         raise FileNotFoundError(filepath_qc)
 
-    attachment_qc = pandas.read_excel(filepath_qc, index_col=None, dtype=str, engine='openpyxl')
+    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name="white_Apps", dtype=str, engine='openpyxl')
     
     df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
 
