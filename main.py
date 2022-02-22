@@ -210,7 +210,7 @@ def get_processed_qc_as_list(attachment_qc):
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        dict_raw_field = {"app_id": row["APP ID"], "tufin_id": row["Tufin ID"], "ips_field": row["IPs"]}
+        dict_raw_field = {"app_id": row["APP ID"], "tufin_id": row["Tufin ID"], "ips_field": row["Destination IPs"]}
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
 
         field = dict_raw_field["ips_field"]
@@ -310,7 +310,12 @@ def get_processed_qc_as_list(attachment_qc):
         for element in list_unpacked_ips:
             list_dict_transformed.append(
                 #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
-                {"Hosted - Script":row['Hosted - Script'],"Hosted - CRT":row['Hosted - CRT'],"CRT AppM":row['CRT AppM'],"SAG/SE Owned":row['SAG/SE Owned'],"ACP #":row['ACP #'],"APP ID":row['APP ID'],"New":row['New'],"Tufin ID":row['Tufin ID'],"Route":row['Route'],"Source":row['Source'],"IPs":element,"Protocol type port":row['Protocol type port'],"FQDNs":row['FQDNs'],"TSA":row['TSA'],"Application Name":row['Application Name'],"Application Manager - Old":row['Application Manager - Old'],"Application Manager\'s mail - New":row['Application Manager\'s mail - New'],"Application Manager - New - Department":row['Application Manager - New - Department'],"Hits":row['Hits'],"Last modified date":row['Last modified date'],"Comment":row['Comment'],"Staging expiration":row['Staging expiration'],"Email sent Date":row['Email sent Date'],"Country":row['Country'],"Location":row['Location'],"Routing Domain":row['Routing Domain'],"VPN name":row['VPN name'],"IP range/CIDR})":row['IP range/CIDR']})
+                {"Change Type":row["Change Type"],"Tufin ID":row['Tufin ID'],"Last modify date":row["Last \nmodify\n date"],
+                 "Last modified by Version":row["Last modified by Version"],"requested by":row["requested by"],"approved_by":row["approved by"],
+                 "APP ID":row["APP ID"],"Source":row["Source"],"Destination FQDNs":row["Destination FQDNs"],
+                 "Destination Info":row["Destination Info"],"Protocol type_port":row["Protocol type_port"],
+                 "ACP Level":row['ACP Level'],"TSA expiration date":row["TSA expiration date"],"Application Requester":row["Application Requester"]
+                    "Comment":row["Comment"]})
 
     return list_dict_transformed
 
@@ -319,7 +324,7 @@ def get_processed_qc_as_list(attachment_qc):
 if __name__ == '__main__':
     filepath_qc = get_cli_args().qualitycheck
     if os.path.exists(filepath_qc):
-        qc = pandas.read_excel(filepath_qc, sheet_name="Sheet1",
+        qc = pandas.read_excel(filepath_qc, sheet_name="white_Apps",
                                  index_col=None, engine='openpyxl')
     else:
         raise FileNotFoundError(filepath_qc)
@@ -335,7 +340,7 @@ if __name__ == '__main__':
         ws.append(r)
 
     today = datetime.date.today()
-    path_to_outfile = "./QualityCh_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
+    path_to_outfile = "./se_ruleset_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
     wb.save(path_to_outfile)
 
     print("Done")
