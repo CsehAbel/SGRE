@@ -118,10 +118,7 @@ def correctAndCheckMatchedMask(cidr):
     resultMask = patternMask.match(cidr)
     mask = resultMask.group(1)
     mask = int(mask)
-    if mask >= 8 and mask <= 32:
-        return mask
-    else:
-        raise BaseException("Mask is less,equal to 16, mask is bigger,equal to 32")
+    return mask
 
 
 def isMask(cidr):
@@ -223,15 +220,8 @@ def get_processed_qc_as_list(attachment_qc):
         elif (not pandas.isnull(field)) and field.find("\n") != -1:
             field_list = field.split("\n")
         elif (not pandas.isnull(field)):
-            field = field.strip(u'\u200b')
-            patternPrefix = re.compile('^\s*(([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3}))\s*$')
-            resultPrefix = patternPrefix.match(field)
-            if resultPrefix:
-                prefix = resultPrefix.group(1)
-                list_unpacked_ips.append(prefix)
-
-        if len(field_list)==1:
-            print("!!!field_list==1")
+            field_list = []
+            field_list.append(field)
 
 
 
@@ -251,7 +241,6 @@ def get_processed_qc_as_list(attachment_qc):
             if resultPrefixCIDR:
                 prefix2 = resultPrefixCIDR.group(1)
                 cidr2 = correctAndCheckMatchedMask(resultPrefixCIDR.group(2))
-
                 base = integerToDecimalDottedQuad(
                     decimalDottedQuadToInteger(prefix2) & makeIntegerMask(
                         cidr2))
