@@ -12,6 +12,9 @@ import pandas
 import re
 import socket
 import struct
+from sqlalchemy import create_engine
+import pymysql
+import secrets
 
 # 3*2 - int("11",2) << 1 = int("110",2)
 # 3 / 2 mit 0.5 truncated (Ziffern nach dem Dezimalpunkt sind weggeworfen) - int("11",2) >> 1 = int("01",2)
@@ -157,6 +160,9 @@ def test_matches(attachment):
             field_list = field.split(";")
         elif (not pandas.isnull(field)) and field.find("\n") != -1:
             field_list = field.split("\n")
+        elif (not pandas.isnull(field)):
+            field_list = []
+            field_list.append(field)
 
         for i in field_list:
             i=i.strip(u'\u200b')
@@ -210,7 +216,7 @@ def get_processed_qc_as_list(attachment_qc):
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        dict_raw_field = {"app_id": row["APP ID"], "tufin_id": row["Tufin ID"], "ips_field": row["IPs"]}
+        dict_raw_field = {"app_id": row["APP ID"], "ips_field": row["IPs"]}
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
 
         field = dict_raw_field["ips_field"]
@@ -223,19 +229,8 @@ def get_processed_qc_as_list(attachment_qc):
         elif (not pandas.isnull(field)) and field.find("\n") != -1:
             field_list = field.split("\n")
         elif (not pandas.isnull(field)):
-            field = field.strip(u'\u200b')
-            patternPrefix = re.compile('^\s*(([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3}))\s*$')
-            resultPrefix = patternPrefix.match(field)
-            if resultPrefix:
-                prefix = resultPrefix.group(1)
-                list_unpacked_ips.append(prefix)
-
-        if len(field_list)==1:
-            print("!!!field_list==1")
-
-
-
-
+            field_list = []
+            field_list.append(field)
 
         for i in field_list:
             i = i.strip(u'\u200b')
@@ -310,7 +305,8 @@ def get_processed_qc_as_list(attachment_qc):
         for element in list_unpacked_ips:
             list_dict_transformed.append(
                 #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
-                {"Hosted - Script":row['Hosted - Script'],"Hosted - CRT":row['Hosted - CRT'],"CRT AppM":row['CRT AppM'],"SAG/SE Owned":row['SAG/SE Owned'],"ACP #":row['ACP #'],"APP ID":row['APP ID'],"New":row['New'],"Tufin ID":row['Tufin ID'],"Route":row['Route'],"Source":row['Source'],"IPs":element,"Protocol type port":row['Protocol type port'],"FQDNs":row['FQDNs'],"TSA":row['TSA'],"Application Name":row['Application Name'],"Application Manager - Old":row['Application Manager - Old'],"Application Manager\'s mail - New":row['Application Manager\'s mail - New'],"Application Manager - New - Department":row['Application Manager - New - Department'],"Hits":row['Hits'],"Last modified date":row['Last modified date'],"Comment":row['Comment'],"Staging expiration":row['Staging expiration'],"Email sent Date":row['Email sent Date'],"Country":row['Country'],"Location":row['Location'],"Routing Domain":row['Routing Domain'],"VPN name":row['VPN name'],"IP range/CIDR})":row['IP range/CIDR']})
+                {"IPs":element,"APP ID":row["APP ID"],
+                 "Application Name":row['Application Name']})
 
     return list_dict_transformed
 
@@ -319,7 +315,7 @@ def get_processed_qc_as_list(attachment_qc):
 if __name__ == '__main__':
     filepath_qc = get_cli_args().qualitycheck
     if os.path.exists(filepath_qc):
-        qc = pandas.read_excel(filepath_qc, sheet_name="Sheet1",
+        qc = pandas.read_excel(filepath_qc,
                                  index_col=None, engine='openpyxl')
     else:
         raise FileNotFoundError(filepath_qc)
@@ -328,14 +324,8 @@ if __name__ == '__main__':
     
     df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-
-    for r in dataframe_to_rows(df_qc, index=False, header=True):
-        ws.append(r)
-
-    today = datetime.date.today()
-    path_to_outfile = "./QualityCh_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
-    wb.save(path_to_outfile)
-
-    print("Done")
+    sqlEngine = create_engine(
+        'mysql+pymysql://%s:%s@%s/%s' % (secrets.mysql_u, secrets.mysql_pw, "127.0.0.1", "CSV_DB"), pool_recycle=3600)
+    dbConnection = sqlEngine.connect()
+    df_qc.to_sql("white_apps", dbConnection, if_exists='replace', index=True)
+    print("Done replacing white_apps")
