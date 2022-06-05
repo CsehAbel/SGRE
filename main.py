@@ -146,7 +146,7 @@ def test_matches(attachment):
     for index, row in attachment.iterrows():
 
 
-        dict_raw_field = {"app_id": [], "tufin_id": row["Tufin ID"], "ips_field": row["Destination IPs"]}
+        dict_raw_field = {"app_id": row["AppID(CRT)"], "ips_field": row["IPs"]}
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
         field = dict_raw_field["ips_field"]
         field_list=[]
@@ -192,7 +192,7 @@ def test_matches(attachment):
                 #ToDo for i in  range(quadToInt(group(1)),quadToInt(group(2))+1)
 
             if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
-                print("no regex match for 'field'%s index:%d row:%s" %(i,index,row))
+                print("no regex match for 'field'%s index:%d IPs:%s" %(i,index,dict_raw_field["ips_field"]))
 
             numberofmatches=0
             for m in inner_matches.values():
@@ -207,7 +207,7 @@ def get_processed_qc_as_list(attachment_qc):
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        dict_raw_field = {"app_id": row["APP ID"], "tufin_id": row["Tufin ID"], "ips_field": row["Destination IPs"]}
+        dict_raw_field = {"app_id": row["AppID(CRT)"], "ips_field": row["IPs"]}
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
 
         field = dict_raw_field["ips_field"]
@@ -300,12 +300,10 @@ def get_processed_qc_as_list(attachment_qc):
         for element in list_unpacked_ips:
             list_dict_transformed.append(
                 #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
-                {"IPs":element,"Change Type":row["Change Type"],"Tufin ID":row['Tufin ID'],
-                 "Last modified by Version":row["Last modified by Version"],"requested by":row["requested by"],"approved_by":row["approved by"],
-                 "APP ID":row["APP ID"],"Source":row["Source"],"FQDNs":row["Destination FQDNs"],
-                 "Application Name":row["Destination Info"],"Protocol type port":row["Protocol type_port"],
-                 "ACP Level":row['ACP Level'],"TSA expiration date":row["TSA expiration date"],"Application Requester":row["Application Requester"]
-                    ,"Comment":row["Comment"]})
+                {"IPs":element,"Change Type":row["Comments"],
+                 "APP ID":dict_raw_field["app_id"],"FQDNs":row["FQDNs"],
+                 "Application Name":row["Application_Name"],"Protocol type port":row["Protocol type_port"],
+                 })
 
     return list_dict_transformed
 
@@ -314,12 +312,12 @@ def get_processed_qc_as_list(attachment_qc):
 if __name__ == '__main__':
     filepath_qc = get_cli_args().qualitycheck
     if os.path.exists(filepath_qc):
-        qc = pandas.read_excel(filepath_qc, sheet_name="white_Apps",
+        qc = pandas.read_excel(filepath_qc, sheet_name="list",
                                  index_col=None, engine='openpyxl')
     else:
         raise FileNotFoundError(filepath_qc)
 
-    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name="white_Apps", dtype=str, engine='openpyxl')
+    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name="list", dtype=str, engine='openpyxl')
     
     df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
 
@@ -330,7 +328,7 @@ if __name__ == '__main__':
         ws.append(r)
 
     today = datetime.date.today()
-    path_to_outfile = "./se_ruleset_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
+    path_to_outfile = "./darwin_whitelist_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
     wb.save(path_to_outfile)
 
     print("Done")
