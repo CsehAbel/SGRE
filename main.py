@@ -146,7 +146,7 @@ def test_matches(attachment):
     for index, row in attachment.iterrows():
 
 
-        dict_raw_field = {"app_id": row["AppID(CRT)"], "ips_field": row["IPs"]}
+        dict_raw_field = {"app_id": row["Application_ID"], "ips_field": row["IPs"]}
         # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
         field = dict_raw_field["ips_field"]
         field_list=[]
