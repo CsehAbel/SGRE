@@ -146,8 +146,8 @@ def test_matches(attachment):
     for index, row in attachment.iterrows():
 
 
-        dict_raw_field = {"app_id": row["Application_ID"], "ips_field": row["IPs"]}
-        # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
+        dict_raw_field = {"app_id": row["UPMX ID"], "ips_field": row["IPs"]}
+
         field = dict_raw_field["ips_field"]
         field_list=[]
         if (not pandas.isnull(field)) and field.find(";") != -1:
@@ -187,12 +187,9 @@ def test_matches(attachment):
                 inner_matches["bindestrich"] = True
                 start_ip_b=resultBindestrich.group(1)
                 end_ip_b=resultBindestrich.group(2)
-                #ToDo resultBindestrich.group(1), group(2)
-                #ToDo if group(1) < 0: group(1)=group(1) + 2**32
-                #ToDo for i in  range(quadToInt(group(1)),quadToInt(group(2))+1)
 
             if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
-                print("no regex match for 'field'%s index:%d IPs:%s" %(i,index,dict_raw_field["ips_field"]))
+                print("no regex match for index:%d IPs:%s" %(index,dict_raw_field["ips_field"]))
 
             numberofmatches=0
             for m in inner_matches.values():
@@ -200,16 +197,22 @@ def test_matches(attachment):
                     numberofmatches+=1
             if numberofmatches > 1:
                 print("too many regex matches")
+                raise ValueError()
 
-def get_processed_qc_as_list(attachment_qc):
+def get_processed_qc_as_list(filepath_qc):
+    attachment_qc = pandas.read_excel(filepath_qc, index_col=None, sheet_name="Whitelist", dtype=str, engine='openpyxl')
 
     test_matches(attachment_qc)
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        dict_raw_field = {"app_id": row["AppID(CRT)"], "ips_field": row["IPs"]}
-        # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
+        try:
+            tsa = datetime.datetime.strptime(row["TSA"], "%Y-%m-%d %H:%M:%S")
+        except:
+            tsa=""
+            print("{0}{1}{2}".format(row["TSA"],"%d/%m/%Y","not valid, tsa set to empty string"))
 
+        dict_raw_field = {"app_id": row["UPMX ID"], "ips_field": row["IPs"]}
         field = dict_raw_field["ips_field"]
         field_list = []
 
@@ -299,36 +302,37 @@ def get_processed_qc_as_list(attachment_qc):
         #"Last modify date":row["Last \nmodify\n date"] ignored in dictionary below
         for element in list_unpacked_ips:
             list_dict_transformed.append(
-                #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
-                {"IPs":element,"Change Type":row["Comments"],
+                {"IPs":element,
                  "APP ID":dict_raw_field["app_id"],"FQDNs":row["FQDNs"],
                  "Application Name":row["Application_Name"],"Protocol type port":row["Protocol type_port"],
+                 "TSA":tsa
                  })
 
     return list_dict_transformed
 
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
+def get_processed_qc_as_list2():
     filepath_qc = get_cli_args().qualitycheck
     if os.path.exists(filepath_qc):
-        qc = pandas.read_excel(filepath_qc, sheet_name="list",
-                                 index_col=None, engine='openpyxl')
+        ""==False
     else:
         raise FileNotFoundError(filepath_qc)
 
-    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name="list", dtype=str, engine='openpyxl')
-    
-    df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
+    return get_processed_qc_as_list(filepath_qc)
 
+
+def save_to_xlsx():
+    cucc = get_processed_qc_as_list2()
+    df_qc = pandas.DataFrame(cucc)
     wb = openpyxl.Workbook()
     ws = wb.active
-
-    for r in dataframe_to_rows(df_qc, index=False, header=True):
+    for r in  dataframe_to_rows(df_qc, index=False, header=True):
         ws.append(r)
-
     today = datetime.date.today()
-    path_to_outfile = "./darwin_whitelist_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
+    path_to_outfile = "./darwin_ruleset_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
     wb.save(path_to_outfile)
-
     print("Done")
+
+
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    save_to_xlsx()
