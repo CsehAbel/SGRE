@@ -4,7 +4,7 @@ import math
 import shlex
 import sys
 import os
-
+from pathlib import Path
 
 import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
@@ -19,6 +19,9 @@ import struct
 # 0xf / 2 = 0x7
 # x >> y
 # Returns x with the bits shifted to the right by y places. This is the same as //'ing x by 2**y.
+import file_operations
+
+
 def cidr_to_netmask(cidr):
   cidr = int(cidr)
   mask = (0xffffffff >> (32 - cidr)) << (32 - cidr) # wenn cidr=24, 32-cidr = 8
@@ -312,7 +315,11 @@ def get_processed_qc_as_list(attachment_qc):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    filepath_qc = get_cli_args().qualitycheck
+    file_operations.main()
+    pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
+    newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
+
+    filepath_qc = newest_rlst.resolve().__str__()
     if os.path.exists(filepath_qc):
         qc = pandas.read_excel(filepath_qc, sheet_name="white_Apps",
                                  index_col=None, engine='openpyxl')
