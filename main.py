@@ -318,6 +318,7 @@ if __name__ == '__main__':
     file_operations.main()
     pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
     newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
+    print("Using "+newest_rlst.resolve().__str__())
 
     filepath_qc = newest_rlst.resolve().__str__()
     if os.path.exists(filepath_qc):
