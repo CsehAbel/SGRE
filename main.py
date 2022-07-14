@@ -4,7 +4,7 @@ import math
 import shlex
 import sys
 import os
-
+from pathlib import Path
 
 import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
@@ -19,6 +19,9 @@ import struct
 # 0xf / 2 = 0x7
 # x >> y
 # Returns x with the bits shifted to the right by y places. This is the same as //'ing x by 2**y.
+import file_operations
+
+
 def cidr_to_netmask(cidr):
   cidr = int(cidr)
   mask = (0xffffffff >> (32 - cidr)) << (32 - cidr) # wenn cidr=24, 32-cidr = 8
@@ -311,7 +314,12 @@ def get_processed_qc_as_list(filepath_qc):
     return list_dict_transformed
 
 def get_processed_qc_as_list2():
-    filepath_qc = get_cli_args().qualitycheck
+    file_operations.main()
+    pttrn_rlst = re.compile("^Darwin_ruleset_\d{4}\d{2}\d{2}\.xlsx$")
+    newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
+    print("Using " + newest_rlst.resolve().__str__())
+
+    filepath_qc = newest_rlst.resolve().__str__()
     if os.path.exists(filepath_qc):
         ""==False
     else:
