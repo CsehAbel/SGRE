@@ -316,18 +316,18 @@ def get_processed_qc_as_list(attachment_qc):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     file_operations.main()
-    pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
+    pttrn_rlst = re.compile("^.+Fokus_Policy_V.+\.xlsx$")
     newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
     print("Using "+newest_rlst.resolve().__str__())
-
+    sheet_name = "a_list_lightblue"
     filepath_qc = newest_rlst.resolve().__str__()
     if os.path.exists(filepath_qc):
-        qc = pandas.read_excel(filepath_qc, sheet_name="white_Apps",
+        qc = pandas.read_excel(filepath_qc, sheet_name=sheet_name,
                                  index_col=None, engine='openpyxl')
     else:
         raise FileNotFoundError(filepath_qc)
 
-    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name="white_Apps", dtype=str, engine='openpyxl')
+    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name=sheet_name, dtype=str, engine='openpyxl')
     
     df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
 
@@ -338,7 +338,7 @@ if __name__ == '__main__':
         ws.append(r)
 
     today = datetime.date.today()
-    path_to_outfile = "./se_ruleset_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
+    path_to_outfile = "./fokus_ruleset_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
     wb.save(path_to_outfile)
 
     print("Done")
