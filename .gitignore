@@ -1,2 +1,4 @@
 secrets.py
 *se_ruleset*
+*_ruleset_*
+__pycache__/**
