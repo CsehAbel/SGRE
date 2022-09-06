@@ -139,7 +139,7 @@ def main():
     remove_files_in_project_dir(
         pttrn_ruleset=re.compile("darwin_ruleset_unpacked\d{2}[A-Za-z]{3}\d{4}\.xlsx$"))
 
-    seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Darwin/")
+    seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Darwin/RuleSet")
     pttrn_rlst = re.compile("^Darwin_ruleset_\d{4}\d{2}\d{2}\.xlsx$")
     newest_rlst = search_newest_in_folder(seruleset_dir, pttrn_rlst)
 
