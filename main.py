@@ -149,8 +149,8 @@ def test_matches(attachment):
     for index, row in attachment.iterrows():
 
 
-        dict_raw_field = {"app_id": [], "tufin_id": row["Tufin ID"], "ips_field": row["Destination IPs"]}
-        # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
+        dict_raw_field = {"app_id": row["APP ID"], "ips_field": row["IPs"]}
+
         field = dict_raw_field["ips_field"]
         field_list=[]
         if (not pandas.isnull(field)) and field.find(";") != -1:
@@ -190,12 +190,9 @@ def test_matches(attachment):
                 inner_matches["bindestrich"] = True
                 start_ip_b=resultBindestrich.group(1)
                 end_ip_b=resultBindestrich.group(2)
-                #ToDo resultBindestrich.group(1), group(2)
-                #ToDo if group(1) < 0: group(1)=group(1) + 2**32
-                #ToDo for i in  range(quadToInt(group(1)),quadToInt(group(2))+1)
 
             if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
-                print("no regex match for 'field'%s index:%d row:%s" %(i,index,row))
+                print("no regex match for index:%d IPs:%s" %(index,dict_raw_field["ips_field"]))
 
             numberofmatches=0
             for m in inner_matches.values():
@@ -203,16 +200,22 @@ def test_matches(attachment):
                     numberofmatches+=1
             if numberofmatches > 1:
                 print("too many regex matches")
+                raise ValueError()
 
-def get_processed_qc_as_list(attachment_qc):
+def get_processed_qc_as_list(filepath_qc):
+    attachment_qc = pandas.read_excel(filepath_qc, index_col=None, dtype=str, engine='openpyxl')
 
     test_matches(attachment_qc)
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        dict_raw_field = {"app_id": row["APP ID"], "tufin_id": row["Tufin ID"], "ips_field": row["Destination IPs"]}
-        # dict_raw_field["app_id"],dict_raw_field["tufin_id"],dict_raw_field["ips_field"]
+        try:
+            tsa = datetime.datetime.strptime(row["TSA"], "%d/%m/%Y")
+        except:
+            tsa=""
+            print("{0}{1}{2}".format(row["TSA"],"%d/%m/%Y","not valid, tsa set to empty string"))
 
+        dict_raw_field = {"app_id": row["APP ID"], "ips_field": row["IPs"]}
         field = dict_raw_field["ips_field"]
         field_list = []
 
@@ -302,43 +305,44 @@ def get_processed_qc_as_list(attachment_qc):
         #"Last modify date":row["Last \nmodify\n date"] ignored in dictionary below
         for element in list_unpacked_ips:
             list_dict_transformed.append(
-                #{"app_id": dict_raw_field["app_id"], "tufin_id": dict_raw_field["tufin_id"], "ip": element, "excel_row_line": (index + 2)}
-                {"IPs":element,"Change Type":row["Change Type"],"Tufin ID":row['Tufin ID'],
-                 "Last modified by Version":row["Last modified by Version"],"requested by":row["requested by"],"approved_by":row["approved by"],
-                 "APP ID":row["APP ID"],"Source":row["Source"],"FQDNs":row["Destination FQDNs"],
-                 "Application Name":row["Destination Info"],"Protocol type port":row["Protocol type_port"],
-                 "ACP Level":row['ACP Level'],"TSA expiration date":row["TSA expiration date"],"Application Requester":row["Application Requester"]
-                    ,"Comment":row["Comment"]})
+                {"IPs":element,
+                 "APP ID":dict_raw_field["app_id"],"FQDNs":row["FQDNs"],
+                 "Application Name":row["Application_Name"],"Protocol type port":row["Protocol type_port"],
+                 "TSA":tsa
+                 })
 
     return list_dict_transformed
+
+def get_processed_qc_as_list2(pttrn_rlst):
+    file_operations.main()
+    newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
+    print("Using " + newest_rlst.resolve().__str__())
+    filepath_qc = newest_rlst.resolve().__str__()
+    if os.path.exists(filepath_qc):
+        ""==False
+    else:
+        raise FileNotFoundError(filepath_qc)
+
+    return get_processed_qc_as_list(filepath_qc)
+
+
+def save_to_xlsx(pttrn_rlst,path_to_outfile):
+    cucc = get_processed_qc_as_list2(pttrn_rlst)
+    df_qc = pandas.DataFrame(cucc)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for r in  dataframe_to_rows(df_qc, index=False, header=True):
+        ws.append(r)
+    today = datetime.date.today()
+    wb.save(path_to_outfile % today.strftime("%d%b%Y"))
+    print("Done")
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    file_operations.main()
-    pttrn_rlst = re.compile("^.+Fokus_Policy_V.+\.xlsx$")
-    newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
-    print("Using "+newest_rlst.resolve().__str__())
-    sheet_name = "a_list_lightblue"
-    filepath_qc = newest_rlst.resolve().__str__()
-    if os.path.exists(filepath_qc):
-        qc = pandas.read_excel(filepath_qc, sheet_name=sheet_name,
-                                 index_col=None, engine='openpyxl')
-    else:
-        raise FileNotFoundError(filepath_qc)
-
-    attachment_qc = pandas.read_excel(filepath_qc, index_col=None,sheet_name=sheet_name, dtype=str, engine='openpyxl')
-    
-    df_qc = pandas.DataFrame(get_processed_qc_as_list(attachment_qc))
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-
-    for r in dataframe_to_rows(df_qc, index=False, header=True):
-        ws.append(r)
-
-    today = datetime.date.today()
-    path_to_outfile = "./fokus_ruleset_unpacked" + today.strftime("%d%b%Y") + ".xlsx"
-    wb.save(path_to_outfile)
-
-    print("Done")
+    path_to_outfile = "./fokus_ruleset_unpacked_air_%s.xlsx"
+    pttrn_rlst = re.compile("QualityCheck_Fokus_AIR.xlsx")
+    save_to_xlsx(pttrn_rlst,path_to_outfile)
+    path_to_outfile = "./fokus_ruleset_unpacked_sag_%s.xlsx"
+    pttrn_rlst = re.compile("QualityCheck_Fokus_SAG.xlsx")
+    save_to_xlsx(pttrn_rlst, path_to_outfile)
