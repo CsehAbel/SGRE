@@ -200,17 +200,79 @@ def test_matches(attachment):
                 print("too many regex matches")
                 raise ValueError()
 
+def parse_tsa_as_date(node1, candidate):
+    head = node1
+    tsa = ""
+    while (head is not None):
+        try:
+            tsa = datetime.datetime.strptime(candidate, head.data)
+        except:
+            head = head.next
+        else:
+            break
+    return head, tsa
+
+# rewrite parse_tsa_as_date2(node1, candidate) as a recursive function
+def parse_tsa_as_date2(node1, candidate):
+    try:
+        tsa = datetime.datetime.strptime(candidate, node1.data)
+    except:
+        if node1.next is not None:
+            return parse_tsa_as_date2(node1.next, candidate)
+        else:
+            return None
+    else:
+        return node1
+
+
+#class tree node
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+        def __str__(self):
+            return self.data
+
+        def __repr__(self):
+            return self.data
+#class tree
+class Tree:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+        self.size = 0
+
+    def __str__(self):
+        return str(self.head)
+
+    def __repr__(self):
+        return str(self.head)
+
+    def add(self, data):
+        node = Node(data)
+        if self.head is None:
+            self.head = node
+            self.tail = node
+        else:
+            self.tail.next = node
+            self.tail = node
+        self.size += 1
+
+    def __len__(self):
+        return self.size
+
+
+
 def get_processed_qc_as_list(filepath_qc):
     attachment_qc = pandas.read_excel(filepath_qc, index_col=None, sheet_name="white_Apps", dtype=str, engine='openpyxl')
     test_matches(attachment_qc)
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        try:
-            tsa = datetime.datetime.strptime(row["TSA expiration date"], "%Y-%m-%d %H:%M:%S")
-        except:
-            tsa = ""
-            print("{0}{1}{2}".format(row["TSA expiration date"], "%Y-%m-%d %H:%M:%S", "not valid, tsa set to empty string"))
+        head, tsa = parse(row["TSA expiration date"])
+        if tsa=="":
+            print("{0}{1}".format(row["TSA expiration date"],"not valid, tsa set to empty string"))
 
         dict_raw_field = {"app_id": row["APP ID"], "ips_field": row["Destination IPs"]}
         field = dict_raw_field["ips_field"]
@@ -306,6 +368,33 @@ def get_processed_qc_as_list(filepath_qc):
                  "Comment":row["Comment"]})
 
     return list_dict_transformed
+
+# tries to parse the given string as a date
+def parse(candidate):
+    # initialize a tree
+    tree = Tree()
+    # add nodes to the tree
+    tree.add("%Y-%m-%d")
+    tree.add("%Y-%m-%d %H:%M:%S")
+    tree.add("%Y-%m-%d %H:%M")
+    tree.add("%Y-%m-%d %H:%M:%S.%f")
+    # with slash instead of -
+    tree.add("%Y/%m/%d")
+    tree.add("%Y/%m/%d %H:%M:%S")
+    tree.add("%Y/%m/%d %H:%M")
+    # starting with days
+    tree.add("%d-%b-%Y")
+    tree.add("%d-%b-%Y %H:%M:%S")
+    tree.add("%d-%m-%Y")
+    tree.add("%d-%m-%Y %H:%M:%S")
+    # with slash instead of -
+    tree.add("%d/%b/%Y")
+    tree.add("%d/%b/%Y %H:%M:%S")
+    tree.add("%d/%m/%Y")
+    tree.add("%d/%m/%Y %H:%M:%S")
+    head,tsa = parse_tsa_as_date(tree.head, candidate)
+    return head,tsa
+
 
 def get_processed_qc_as_list2(pttrn_rlst):
     file_operations.main()
