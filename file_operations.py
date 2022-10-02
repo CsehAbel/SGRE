@@ -142,7 +142,6 @@ def main():
     seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Darwin/RuleSet")
     pttrn_rlst = re.compile("^Darwin_ruleset_\d{4}\d{2}\d{2}\.xlsx$")
     newest_rlst = search_newest_in_folder(seruleset_dir, pttrn_rlst)
-
     shutil.copy(src=newest_rlst,
                 dst=Path("./") / newest_rlst.name)
     print(newest_rlst.name + " copied to project_dir.")

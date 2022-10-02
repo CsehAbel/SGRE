@@ -1,5 +1,6 @@
 secrets.py
 *se_ruleset*
-*ruleset*
+*_ruleset_*
+__pycache__/**
 Darwin_Whitelist_*
 darwin_whitelist_unpacked_*
