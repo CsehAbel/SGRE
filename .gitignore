@@ -1,5 +1,10 @@
 secrets.py
 *se_ruleset*
+<<<<<<< HEAD
 *ruleset*
 Darwin_Whitelist_*
 darwin_whitelist_unpacked_*
+=======
+*_ruleset_*
+__pycache__/**
+>>>>>>> main
