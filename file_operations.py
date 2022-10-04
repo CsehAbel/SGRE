@@ -129,16 +129,7 @@ def remove_files_in_project_dir(pttrn_ruleset):
             unlink_file(x.resolve().__str__(),x.name,x)
             print("%s unlinked" %x.resolve().__str__())
 
-
-#[child.unlink() for child in Path("darwin_hits).listdir()]
-#def clear_darwin_hits():
-def main():
-    pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
-    remove_files_in_project_dir(
-        pttrn_ruleset=pttrn_rlst)
-    remove_files_in_project_dir(
-        pttrn_ruleset=re.compile("se_ruleset_unpacked\d{2}[A-Za-z]{3}\d{4}\.xlsx$"))
-
+def copy_raw_to_local_dir():
     seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Energy-FW-Policies/")
     newest_seruleset_dir = search_newest_in_folder(seruleset_dir, re.compile("v\d+$"))
     # "2022-06-30_se_ruleset_v106_raw.xlsx"
@@ -147,6 +138,3 @@ def main():
     shutil.copy(src=newest_rlst,
                 dst=Path("./") / newest_rlst.name)
     print(newest_rlst.name + " copied to project_dir.")
-
-if __name__=="__main__":
-    main()
