@@ -362,7 +362,7 @@ def get_processed_qc_as_list(filepath_qc):
             list_dict_transformed.append(
                 {"IPs":element,
                  "APP ID":row["APP ID"],"FQDNs":row["Destination FQDNs"],
-                 "Application Name":row["Destination Info"],"Protocol type port":row["Protocol type_port"],
+                 "Application Name":row["AppName"],"Protocol type port":row["Protocol type_port"],
                  "TSA":tsa,
                  "Change Type": row["Change Type"],
                  "Comment":row["Comment"]})
@@ -397,7 +397,6 @@ def parse(candidate):
 
 
 def get_processed_qc_as_list2(pttrn_rlst):
-    file_operations.main()
     newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
     print("Using " + newest_rlst.resolve().__str__())
 
@@ -420,9 +419,3 @@ def save_to_xlsx(pttrn_rlst,path_to_outfile):
     today = datetime.date.today()
     wb.save(path_to_outfile % today.strftime("%d%b%Y"))
     print("Done")
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-   path_to_outfile = "./se_ruleset_unpacked_%s.xlsx"
-   pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
-   save_to_xlsx(pttrn_rlst,path_to_outfile)
