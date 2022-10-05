@@ -148,8 +148,15 @@ def test_matches(attachment):
 
     for index, row in attachment.iterrows():
 
-        dict_raw_field = {"app_id": row["UPMX ID"], "ips_field": row["IPs"]}
-        field = dict_raw_field["ips_field"]
+        #if "UPMX ID" is empty or contains only spaces then print error
+        if not row["UPMX ID"]:
+            print("Error in APP ID: " + row["UPMX ID"] + " in row " + str(index))
+
+        # check if AppName is not an empty string or empty, if empty then print error
+        if not row["AppName"]:
+            print("Error in AppName: " + row["AppName"] + " in row " + str(index))
+
+        field = row["IPs"]
         field_list=[]
         if (not pandas.isnull(field)) and field.find(";") != -1:
             field_list = field.split(";")
@@ -190,7 +197,7 @@ def test_matches(attachment):
                 end_ip_b=resultBindestrich.group(2)
 
             if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i)==0 :
-                print("no regex match for index:%d IPs:%s" %(index,dict_raw_field["ips_field"]))
+                print("no regex match for index:%d IPs:%s" %(index,row["IPs"]))
 
             numberofmatches=0
             for m in inner_matches.values():
@@ -210,7 +217,7 @@ def parse_tsa_as_date(node1, candidate):
             head = head.next
         else:
             break
-    return head, tsa
+    return tsa
 
 # rewrite parse_tsa_as_date2(node1, candidate) as a recursive function
 def parse_tsa_as_date2(node1, candidate):
@@ -267,12 +274,11 @@ def get_processed_qc_as_list(filepath_qc):
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     list_dict_transformed = []
     for index, row in attachment_qc.iterrows():
-        head, tsa = parse(row["TSA"])
+        tsa = parse(row["TSA"])
         if tsa=="":
-            print("{0}{1}".format(row["TSA"],"not valid, tsa set to empty string"))
+            print("{0}{1}{2}".format(index,row["TSA"],"not valid, tsa set to empty string"))
 
-        dict_raw_field = {"app_id": row["UPMX ID"], "ips_field": row["IPs"]}
-        field = dict_raw_field["ips_field"]
+        field = row["IPs"]
         field_list = []
 
         list_unpacked_ips = []
@@ -358,7 +364,7 @@ def get_processed_qc_as_list(filepath_qc):
         for element in list_unpacked_ips:
             list_dict_transformed.append(
                 {"IPs":element,
-                 "APP ID":dict_raw_field["app_id"],"FQDNs":row["FQDNs"],
+                 "APP ID":row["UPMX ID"],"FQDNs":row["FQDNs"],
                  "Application Name":row["Application_Name"],"Protocol type port":row["Protocol type_port"],
                  "TSA":tsa
                  })
@@ -388,12 +394,11 @@ def parse(candidate):
     tree.add("%d/%b/%Y %H:%M:%S")
     tree.add("%d/%m/%Y")
     tree.add("%d/%m/%Y %H:%M:%S")
-    head,tsa = parse_tsa_as_date(tree.head, candidate)
-    return head,tsa
+    tsa = parse_tsa_as_date(tree.head, candidate)
+    return tsa
 
 
 def get_processed_qc_as_list2(pttrn_rlst):
-    file_operations.main()
     newest_rlst = file_operations.search_newest_in_folder(Path("./"), pttrn_rlst)
     print("Using " + newest_rlst.resolve().__str__())
 
@@ -415,9 +420,3 @@ def save_to_xlsx(pttrn_rlst,path_to_outfile):
     today = datetime.date.today()
     wb.save(path_to_outfile % today.strftime("%d%b%Y"))
     print("Done")
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    path_to_outfile = "./darwin_ruleset_unpacked_%s.xlsx"
-    pttrn_rlst = re.compile("^Darwin_ruleset_\d{4}\d{2}\d{2}\.xlsx$")
-    save_to_xlsx(pttrn_rlst,path_to_outfile)
