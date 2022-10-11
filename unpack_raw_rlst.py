@@ -239,7 +239,7 @@ def get_processed_qc_as_list(filepath_qc):
         # surrounding with try except block to catch errors
         try:
             result = pattern.match(row["APP ID"]) if not pandas.isnull(row["APP ID"]) else False
-            if not result:
+            if not result or pandas.isnull(row["APP ID"]):
                 # print error with index
                 print("Error in row " + str(index) + " APP ID is not an integer:" + str(row["APP ID"]))
         except:
