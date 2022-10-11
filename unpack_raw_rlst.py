@@ -310,6 +310,12 @@ def insert_to_ruleset(conn, table, list_unpacked_ips):
     for s in slices:
         # try to insert the slice into the eagle table
         try:
+            # check if the dictionaries in the slice have values where pandas.isnull() is True
+            # if so, replace with None
+            for d in s:
+                for k, v in d.items():
+                    if pandas.isnull(v):
+                        d[k] = None
             conn.execute(table.insert().values(s))
         # if the insert fails print the error
         except Exception as e:
