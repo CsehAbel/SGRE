@@ -349,7 +349,7 @@ def create_dictionary(list_unpacked_ips, row, tsa):
                 raise TypeError
             #row["Destination FQDNs"]
             #truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else NaN
-            truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else None
+            truncate_fqdns = str(row["Destination FQDNs"])[:254] if row["Destination FQDNs"] else None
             dict_transformed = {"ip": ip,
                                 "start": i[0],
                                 "end": i[1],
