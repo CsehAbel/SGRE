@@ -347,11 +347,14 @@ def create_dictionary(list_unpacked_ips, row, tsa):
             if not isinstance(i[2], int):
                 print("cidr is not a string: " + str(i[2]))
                 raise TypeError
+            #row["Destination FQDNs"]
+            #truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else NaN
+            truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else None
             dict_transformed = {"ip": ip,
                                 "start": i[0],
                                 "end": i[1],
                                 "cidr": i[2],
-                                "fqdns": row["Destination FQDNs"],
+                                "fqdns": truncate_fqdns,
                                 "tsa": tsa,
                                 "app_name": row["AppName"],
                                 "app_id": row["APP ID"]
