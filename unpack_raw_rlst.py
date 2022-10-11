@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import logging
 import math
 import secrets
 import shlex
@@ -13,6 +14,20 @@ import pandas
 import re
 import socket
 import struct
+from sqlalchemy import Table, Column, create_engine, MetaData, Integer, String, DateTime, Date
+
+#setup two loggers with different file handlers
+def setup_logger(name, log_file, level=logging.INFO):
+    """Function setup as many loggers as you want"""
+
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 # 3*2 - int("11",2) << 1 = int("110",2)
 # 3 / 2 mit 0.5 truncated (Ziffern nach dem Dezimalpunkt sind weggeworfen) - int("11",2) >> 1 = int("01",2)
@@ -20,11 +35,6 @@ import struct
 # 0xf / 2 = 0x7
 # x >> y
 # Returns x with the bits shifted to the right by y places. This is the same as //'ing x by 2**y.
-from sqlalchemy import Table, Column, create_engine, MetaData, Integer, String, DateTime, Date
-
-import file_operations_raw_rlst
-
-
 def cidr_to_netmask(cidr):
     cidr = int(cidr)
     mask = (0xffffffff >> (32 - cidr)) << (32 - cidr)  # wenn cidr=24, 32-cidr = 8
