@@ -5,11 +5,8 @@ import math
 import secrets
 import shlex
 import sys
-import os
-from pathlib import Path
 
 import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
 import pandas
 import re
 import socket
@@ -251,17 +248,17 @@ def get_processed_qc_as_list(filepath_qc):
             result = pattern.match(row["APP ID"]) if not pandas.isnull(row["APP ID"]) else False
             if not result or pandas.isnull(row["APP ID"]):
                 # print error with index
-                print("Error in row " + str(index) + " APP ID is not an integer:" + str(row["APP ID"]))
+                logging.getLogger("appid").log(level=logging.INFO,msg="Error in row " + str(index) + ": APP ID is not an integer:" + str(row["APP ID"]))
         except:
-            print("row[APP ID] went to shit, please check APP ID: " + row["APP ID"])
+            logging.getLogger("appid").log(level=logging.ERROR,msg="Error in row " + str(index) + ": APP ID is baad:" + str(row["APP ID"]))
 
         # check if AppName is not an empty string or empty, if empty then print error
         if not row["AppName"]:
-            print("Error in AppName: " + row["AppName"] + " in row " + str(index))
+            logging.getLogger("appname").log(level=logging.INFO,msg="Error in row " + str(index) + ": AppName is empty:" + str(row["AppName"]))
 
         tsa = parse(row["TSA expiration date"])
         if tsa == datetime.datetime.max.date():
-            print("{0}{1}{2}".format(index, row["TSA expiration date"], "not valid, tsa set to empty string"))
+            logging.getLogger("tsa").log(level=logging.INFO,msg="Error in row " + str(index) + ": TSA expiration date is not a date:" + str(row["TSA expiration date"]))
 
         # each field can contain multiple ips or ip ranges, separated by ; or \n
         # returns list of [start,end,cidr]
@@ -329,7 +326,7 @@ def insert_to_ruleset(conn, table, list_unpacked_ips):
             conn.execute(table.insert().values(s))
         # if the insert fails print the error
         except Exception as e:
-            print(e)
+            logging.getLogger("insert_ruleset").log(level=logging.ERROR,msg=e)
 
 
 def to_slices(divisor, systems_ips):
@@ -461,7 +458,7 @@ def process_ip_field_per_row(field):
             list_unpacked_ips.append([start_ip_b, end_ip_b, iprange_to_cidr(start_ip_b, end_ip_b)])
 
         if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i) == 0:
-            print("no regex match for index:%s IPs:%s" % (i, field))
+            logging.getLogger("parseip").log(level=logging.ERROR, msg="no regex match for element:%s IPs:%s" % (i, field))
 
         numberofmatches = 0
         for m in inner_matches.values():
@@ -516,13 +513,17 @@ def parse(candidate):
 def save_to_xlsx(list_dict_transformed_outer, path_to_save):
     wb = openpyxl.Workbook()
     ws = wb.active
-    # for r in list_dict_transformed_outer try ws.append(r):
+
+    fieldnames=list_dict_transformed_outer[0].keys()
+    #create a generator from fieldnames
+    fieldnames_gen = (field for field in fieldnames)
+    ws.append(fieldnames_gen)
     for r in list_dict_transformed_outer:
         try:
-            ws.append(r)
-        except:
-            print("error while appending row to xlsx")
-            print(r)
+            values=(r[k] for k in fieldnames)
+            ws.append(values)
+        except Exception as e:
+            logging.getLogger("logger_excel").log(logging.ERROR, "error in save_to_xlsx: %s\n record: %s" %(e,r))
     today = datetime.date.today()
     wb.save(path_to_save % today.strftime("%d%b%Y"))
     print("Done")

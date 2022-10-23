@@ -26,9 +26,15 @@ class TestMain(TestCase):
         file_operations_raw_rlst.copy_raw_to_local_dir()
 
     def test_save_to_xlsx(self):
+        logger_insert_ruleset = unpack_raw_rlst.setup_logger("insert_ruleset", "logs/insert_ruleset.log")
+        logger_excel = unpack_raw_rlst.setup_logger("logger_excel", "logs/save_to_xlsx.log")
+        logger_appid = unpack_raw_rlst.setup_logger("appid", "logs/appid.log")
+        logger_appname = unpack_raw_rlst.setup_logger("appname", "logs/appname.log")
+        logger_parseip= unpack_raw_rlst.setup_logger("parseip", "logs/parseip.log")
+        logger_tsa = unpack_raw_rlst.setup_logger("tsa", "logs/tsa.log")
         path_to_save = "./se_ruleset_unpacked_%s.xlsx"
         pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
-        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir="./", pttrn=pttrn_rlst)
+        filepath_qc = file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
         list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
         unpack_raw_rlst.save_to_xlsx(list_dict_transformed_outer=list_dict_transformed_outer, path_to_save=path_to_save)
