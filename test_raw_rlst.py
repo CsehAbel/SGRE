@@ -40,6 +40,12 @@ class TestMain(TestCase):
         unpack_raw_rlst.save_to_xlsx(list_dict_transformed_outer=list_dict_transformed_outer, path_to_save=path_to_save)
 
     def test_save_to_sql(self):
+        logger_insert_ruleset = unpack_raw_rlst.setup_logger("insert_ruleset", "logs/insert_ruleset.log")
+        logger_excel = unpack_raw_rlst.setup_logger("logger_excel", "logs/save_to_xlsx.log")
+        logger_appid = unpack_raw_rlst.setup_logger("appid", "logs/appid.log")
+        logger_appname = unpack_raw_rlst.setup_logger("appname", "logs/appname.log")
+        logger_parseip = unpack_raw_rlst.setup_logger("parseip", "logs/parseip.log")
+        logger_tsa = unpack_raw_rlst.setup_logger("tsa", "logs/tsa.log")
         row1=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
         pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
         filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)

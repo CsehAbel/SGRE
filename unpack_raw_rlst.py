@@ -252,7 +252,7 @@ def get_processed_qc_as_list(filepath_qc):
         except:
             logging.getLogger("appid").log(level=logging.ERROR,msg="Error in row " + str(index) + ": APP ID is baad:" + str(row["APP ID"]))
 
-        # check if AppName is not an empty string or empty, if empty then print error
+        #check if AppName is not an empty string or empty, if empty then print error
         if not row["AppName"]:
             logging.getLogger("appname").log(level=logging.INFO,msg="Error in row " + str(index) + ": AppName is empty:" + str(row["AppName"]))
 
@@ -284,7 +284,7 @@ def dict_to_sql(list_unpacked_ips):
     conn = sqlEngine.connect()
 
     insert_to_ruleset(conn, ruleset_table, list_unpacked_ips)
-    print("eagle insert done!")
+    print("ruleset insert done!")
 
 
 def drop_and_create_ruleset_table(metadata_obj, sql_engine):
@@ -324,9 +324,8 @@ def insert_to_ruleset(conn, table, list_unpacked_ips):
                     if pandas.isnull(v):
                         d[k] = None
             conn.execute(table.insert().values(s))
-        # if the insert fails print the error
         except Exception as e:
-            logging.getLogger("insert_ruleset").log(level=logging.ERROR,msg=e)
+            logging.getLogger("insert_ruleset").log(level=logging.INFO,msg=e)
 
 
 def to_slices(divisor, systems_ips):
@@ -458,7 +457,7 @@ def process_ip_field_per_row(field):
             list_unpacked_ips.append([start_ip_b, end_ip_b, iprange_to_cidr(start_ip_b, end_ip_b)])
 
         if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i) == 0:
-            logging.getLogger("parseip").log(level=logging.ERROR, msg="no regex match for element:%s IPs:%s" % (i, field))
+            logging.getLogger("parseip").log(level=logging.INFO, msg="no regex match for element:%s IPs:%s" % (i, field))
 
         numberofmatches = 0
         for m in inner_matches.values():
@@ -477,7 +476,7 @@ def process_ip_field_per_row(field):
 # unpacks a range of ip addresses, start,end given as a string
 def map_range_to_single_ip(start_ip, end_ip):
     list_unpacked_ips = []
-    for j in range(ipaddress_to_integer(start_ip) + 1,
+    for j in range(ipaddress_to_integer(start_ip),
                    ipaddress_to_integer(end_ip) + 1):
         list_unpacked_ips.append(integer_to_ipaddress(j))
     return list_unpacked_ips
