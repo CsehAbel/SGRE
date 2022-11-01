@@ -2,6 +2,10 @@ import argparse
 import datetime
 import logging
 import math
+
+from sqlalchemy.dialects.mysql import INTEGER
+
+import ip_utils
 import secrets
 import shlex
 import sys
@@ -25,136 +29,6 @@ def setup_logger(name, log_file, level=logging.INFO):
     logger.addHandler(handler)
 
     return logger
-
-# 3*2 - int("11",2) << 1 = int("110",2)
-# 3 / 2 mit 0.5 truncated (Ziffern nach dem Dezimalpunkt sind weggeworfen) - int("11",2) >> 1 = int("01",2)
-# 0xf / 2 mit 0.5 truncated -> int("1111",2) >> 1  -> int("0111",2)
-# 0xf / 2 = 0x7
-# x >> y
-# Returns x with the bits shifted to the right by y places. This is the same as //'ing x by 2**y.
-def cidr_to_netmask(cidr):
-    cidr = int(cidr)
-    mask = (0xffffffff >> (32 - cidr)) << (32 - cidr)  # wenn cidr=24, 32-cidr = 8
-    # 0xffffffff >> 8 = int("0000 0000 1111 1111 1111 1111 1111 1111")
-    # 0xffffff << 8 ->  int("0000 0000 1111 1111 1111 1111 1111 1111") << 8 = int("1111 1111 1111 1111 1111 1111 0000 0000")
-    # int("0000 0000 1111 1111 1111 1111 1111 1111") << 8 = ˜int("0000 0000 1111 1111 1111 1111 1111 1111")=int("1111 1111 1111 1111 1111 1111 0000 0000")
-    # ~x
-    # Returns the complement of x - the number you get by switching each 1 for a 0 and each 0 for a 1
-    return integer_to_ipaddress(mask)
-
-
-def netmask_to_cidr(netmask):
-    '''
-    :param netmask: netmask ip addr (eg: 255.255.255.0)
-    :return: equivalent cidr number to given netmask ip (eg: 24)
-    '''
-    return sum([bin(int(x)).count('1') for x in netmask.split('.')])
-
-
-def integer_to_ipaddress(ip_int):
-    return (str((0xff000000 & ip_int) >> 24) + '.' +
-            str((0x00ff0000 & ip_int) >> 16) + '.' +
-            str((0x0000ff00 & ip_int) >> 8) + '.' +
-            str((0x000000ff & ip_int)))
-
-
-def makeIntegerMask(cidr):
-    # return a mask of n bits as a long integer
-    mask = (0xffffffff >> (32 - cidr)) << (32 - cidr)
-    return mask
-
-
-def ipaddress_to_integer(dottedquad):
-    # convert decimal dotted quad string to long integer"
-    # @ is native, ! is big-endian, native didnt work" \
-    # returned the octects reversed main.integerToDecimalDottedQuad(main.decimalDottedQuadToInteger('149.246.14.224'))"
-    ip_as_int = struct.unpack('!i', socket.inet_aton(dottedquad))[0]
-    if ip_as_int < 0:
-        ip_as_int = ip_as_int + 2 ** 32
-    return ip_as_int
-
-
-def isIntegerAddressInIntegerNetwork(ip, net):
-    # Is an address in a network"
-    return ip & net == net
-
-
-def isPrefix(ipaddr):
-    patternPrefix = re.compile('.*?([0-9]{1,3}[^\d]+[0-9]{1,3}[^\d]+[0-9]{1,3}[^\d]+[0-9]{1,3}).*$')
-    resultPrefix = patternPrefix.match(ipaddr)
-    # first digit that it starts with is [1-9]
-    patternPrefixCommaSeparated = re.compile('[^\d]*?([1-9][0-9]{10,11}).*$')
-    resultPrefixCommaSeparated = patternPrefixCommaSeparated.match(ipaddr)
-    if resultPrefix or resultPrefixCommaSeparated:
-        return True
-    else:
-        return False
-
-
-def correctMatchedPrefix(ipaddr):
-    patternPrefixCommaSeparated = re.compile('^\s*([1-9][0-9]{10,11})\s*$')
-    resultPrefixCommaSeparated = patternPrefixCommaSeparated.match(ipaddr)
-
-    if resultPrefixCommaSeparated:
-        digits = [int(x) for x in str(resultPrefixCommaSeparated.group(1))]
-        l = len(digits)
-        fourthoctet = [digits[l - 3] * 100, digits[l - 2] * 10, digits[l - 1]]
-        thirdoctet = [digits[l - x] * math.pow(10, x - 4) for x in range(6, 3, -1)]
-        secondoctet = [digits[l - x] * math.pow(10, x - 7) for x in range(9, 6, -1)]
-        firstoctet = [digits[l - x] * math.pow(10, x - 10) for x in range(l, 9, -1)]
-        ip = ".".join([str(int(sum(firstoctet))), str(int(sum(secondoctet))), str(int(sum(thirdoctet))),
-                       str(int(sum(fourthoctet)))])
-        return ip
-
-
-# if prefix is matched as an ip address like 147,12,33,2 or with any other separator between the octets
-# then it returns it with dots between the octets 147.12.33.2
-
-
-# returns true if IP range is an Office IP Range, returns false otherwise
-def isOfficeClientRange(officeclientrange):
-    patternOffice1 = re.compile('\s*yes\s*$', re.IGNORECASE)
-    patternOffice2 = re.compile('\s*y\s*$', re.IGNORECASE)
-
-    resultOffice1 = patternOffice1.match(officeclientrange)
-    resultOffice2 = patternOffice2.match(officeclientrange)
-    if resultOffice1 or resultOffice2:
-        return True
-    else:
-        return False
-
-
-def correctAndCheckMatchedMask(cidr):
-    patternMask = re.compile('[^\d]*(\d+)[^\d]*$')
-    resultMask = patternMask.match(cidr)
-    mask = resultMask.group(1)
-    mask = int(mask)
-    return mask
-
-
-def iprange_to_cidr(inet_start, inet_stop):
-    # convert the first ip of the range to an integer
-    start = ipaddress_to_integer(inet_start)
-    # convert the last ip of the range to an integer
-    stop = ipaddress_to_integer(inet_stop)
-    # calculate the difference between the two integers
-    # the number of bits needed to represent the difference subtracted from 32 is the cidr
-    diff = stop - start
-    # calculate the number of bits needed to represent the difference
-    bits = math.ceil(math.log(diff, 2))
-    # calculate the cidr
-    cidr = 32 - bits
-    return cidr
-
-
-def isMask(cidr):
-    patternMask = re.compile('[^\d]*(\d+)[^\d]*$')
-    resultMask = patternMask.match(cidr)
-    if resultMask:
-        return True
-    else:
-        return False
-
 
 def get_cli_args():
     parser = argparse.ArgumentParser("Unpacking Quality Check xlsx")
@@ -237,6 +111,7 @@ def get_processed_qc_as_list(filepath_qc):
     attachment_qc = pandas.read_excel(filepath_qc, index_col=None, sheet_name="white_Apps", dtype=str,
                                       engine='openpyxl')
     list_dict_transformed_outer = []
+    list_dict_outer=[]
     # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
     for index, row in attachment_qc.iterrows():
 
@@ -248,7 +123,7 @@ def get_processed_qc_as_list(filepath_qc):
             result = pattern.match(row["APP ID"]) if not pandas.isnull(row["APP ID"]) else False
             if not result or pandas.isnull(row["APP ID"]):
                 # print error with index
-                logging.getLogger("appid").log(level=logging.INFO,msg="Error in row " + str(index) + ": APP ID is not an integer:" + str(row["APP ID"]))
+                logging.getLogger("appid").log(level=logging.WARNING,msg="Error in row " + str(index) + ": APP ID is not an integer:" + str(row["APP ID"]))
         except:
             logging.getLogger("appid").log(level=logging.ERROR,msg="Error in row " + str(index) + ": APP ID is baad:" + str(row["APP ID"]))
 
@@ -264,13 +139,19 @@ def get_processed_qc_as_list(filepath_qc):
         # returns list of [start,end,cidr]
         field = row["Destination IPs"]
         list_unpacked_ips = process_ip_field_per_row(field)
+        # for each element in list_unpacked_ips create a new dictinary, with [start,end,cidr] and
+        # row values and tsa, and append to list_dict_transformed
+        list_dict= create_dictionary_asis(list_unpacked_ips, row, tsa)
+        # append list_dict to list_dict_outer
+        list_dict_outer.extend(list_dict)
         # for each element in list_unpacked_ips create a new dictinary, with single ip,[start,end,cidr] and
         # row values and tsa, and append to list_dict_transformed
-        list_dict_transformed = create_dictionary(list_unpacked_ips, row, tsa)
+        #list_dict_transformed = create_dictionary(list_unpacked_ips, row, tsa)
         # append list_dict_transformed to list_dict_transformed_outer
-        list_dict_transformed_outer.extend(list_dict_transformed)
+        #list_dict_transformed_outer.extend(list_dict_transformed)
 
-    return list_dict_transformed_outer
+    #return list_dict_transformed_outer
+    return list_dict_outer
 
 
 # ToDO do an assert to count rows in the database table
@@ -288,23 +169,19 @@ def dict_to_sql(list_unpacked_ips):
 
 
 def drop_and_create_ruleset_table(metadata_obj, sql_engine):
-    # eagle_table = Table('eagle', metadata_obj,
-    #                     Column('id', Integer, primary_key=True),
-    #                     Column('ip', String(15), nullable=False),
-    #                     Column('base', String(15), nullable=False),
-    #                     Column('cidr', Integer, nullable=False)
-    #                     )
-    # create similar table for list_dict_transformed based on create_excel_input()'s dict_transformed
     ruleset_table = Table('ruleset', metadata_obj,
                         Column('id', Integer, primary_key=True),
-                        Column('ip', String(15), nullable=False),
                         Column('start', String(15), nullable=False),
                         Column('end', String(15), nullable=False),
+                        Column('start_int', INTEGER(unsigned=True), nullable=False),
+                        Column('end_int', INTEGER(unsigned=True), nullable=False),
                         Column('cidr', Integer, nullable=False),
-                        Column('app_id', Integer, nullable=True),
-                        Column('app_name', String(255), nullable=True),
+                        Column('fqdns', String(255), nullable=True),
                         Column('tsa', Date, nullable=True),
-                        Column('fqdns', String(255), nullable=True)
+                        Column('app_name', String(255), nullable=True),
+                        #Column('app_id', Integer, nullable=True)
+                        #'(pymysql.err.DataError) (1265, "Data truncated for column \'app_id\' at row 457")'
+                        Column('app_id', String(255), nullable=True)
                         )
 
     ruleset_table.drop(sql_engine, checkfirst=True)
@@ -342,24 +219,25 @@ def to_slices(divisor, systems_ips):
         lower_bound = upper_bound
     return slices
 
-
 def create_dictionary(list_unpacked_ips, row, tsa):
     list_dict_transformed = []
     for i in list_unpacked_ips:
-        single_ips = map_range_to_single_ip(i[0], i[1])
+        single_ips = map_range_to_single_ip(i["start"], i["end"])
         list_dict_transformed_inner = []
         for ip in single_ips:
-            # check if i[2] is not type string
-            if not isinstance(i[2], int):
-                print("cidr is not a string: " + str(i[2]))
+            # check if i["cidr"] is not type string
+            if not isinstance(i["cidr"], int):
+                print("cidr is not a string: " + str(i["cidr"]))
                 raise TypeError
             #row["Destination FQDNs"]
             #truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else NaN
             truncate_fqdns = str(row["Destination FQDNs"])[:254] if row["Destination FQDNs"] else None
             dict_transformed = {"ip": ip,
-                                "start": i[0],
-                                "end": i[1],
-                                "cidr": i[2],
+                                "start": i["start"],
+                                "end": i["end"],
+                                "start_int": i["start_int"],
+                                "end_int": i["end_int"],
+                                "cidr": i["cidr"],
                                 "fqdns": truncate_fqdns,
                                 "tsa": tsa,
                                 "app_name": row["AppName"],
@@ -368,6 +246,31 @@ def create_dictionary(list_unpacked_ips, row, tsa):
             list_dict_transformed_inner.append(dict_transformed)
         list_dict_transformed.extend(list_dict_transformed_inner)
     return list_dict_transformed
+
+def create_dictionary_asis(list_unpacked_ips, row, tsa):
+    list_dict = []
+    for i in list_unpacked_ips:
+
+        # check if i["cidr"] is not type string
+        if not isinstance(i["cidr"], int):
+            print("cidr is not a string: " + str(i["cidr"]))
+            raise TypeError
+        #row["Destination FQDNs"]
+        #truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else NaN
+        truncate_fqdns = str(row["Destination FQDNs"])[:254] if row["Destination FQDNs"] else None
+        dict_transformed = {
+                            "start": i["start"],
+                            "end": i["end"],
+                            "start_int": i["start_int"],
+                            "end_int": i["end_int"],
+                            "cidr": i["cidr"],
+                            "fqdns": truncate_fqdns,
+                            "tsa": tsa,
+                            "app_name": row["AppName"],
+                            "app_id": row["APP ID"]
+                            }
+        list_dict.append(dict_transformed)
+    return list_dict
 
 
 def process_ip_field_per_row(field):
@@ -398,35 +301,18 @@ def process_ip_field_per_row(field):
             prefix = resultPrefix.group(1)
             # end ip is the same as start ip
             # cidr is 32
-            list_unpacked_ips.append([prefix, prefix, 32])
+            list_unpacked_ips.append({"start":prefix,"end":prefix,"cidr":32,
+                                      "start_int":ip_utils.ip2int(prefix),"end_int":ip_utils.ip2int(prefix)})
 
         patternPrefixCIDR = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/(\d+)\s*$')
         resultPrefixCIDR = patternPrefixCIDR.match(i)
         if resultPrefixCIDR:
             inner_matches["cidr"] = True
             prefix2 = resultPrefixCIDR.group(1)
-            cidr2 = correctAndCheckMatchedMask(resultPrefixCIDR.group(2))
-            base = integer_to_ipaddress(
-                ipaddress_to_integer(prefix2) & makeIntegerMask(
-                    cidr2))
-            if base != prefix2:
-                print("Not a network Adresse (possible ip base %s)" % base)
-
-            int_prefix_top = (~makeIntegerMask(
-                cidr2)) | ipaddress_to_integer(prefix2)
-            if int_prefix_top - 2 * 32 == -4117887025:
-                print("Test signed to unsigned conversion")
-                # ToDo breakpoint setzen, Werte die die for Schleife ausspuckt mit den erwarteten Ergebnisse zu vergleichen
-                # Modified
-                #    decimalDottedQuadToInteger()
-                # to convert signed integers to unsigned.
-                # Das Folgende ist redundant, überreichlich, ersetzt:
-                #   int_prefix_top == -4117887025:
-                #   if int_prefix_top < 0:
-                #      int_prefix_top = int_prefix_top + (2**32)
-            prefix_top = integer_to_ipaddress(int_prefix_top)
-
-            list_unpacked_ips.append([base, prefix_top, cidr2])
+            cidr2 = ip_utils.correctAndCheckMatchedMask(resultPrefixCIDR.group(2))
+            base,prefix_top=ip_utils.base_cidr_to_range(prefix2,cidr2)
+            list_unpacked_ips.append({"start":base,"end":prefix_top,"cidr":cidr2,
+                                      "start_int":ip_utils.ip2int(base),"end_int":ip_utils.ip2int(prefix_top)})
 
         patternPrefixRange = re.compile('^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\.([0-9]{1,3})-(\d+)\s*$')
         resultPrefixRange = patternPrefixRange.match(i)
@@ -438,14 +324,16 @@ def process_ip_field_per_row(field):
 
             start_ip = ".".join([prefix3, fourthoctet3])
             end_ip = ".".join([prefix3, fifthoctet3])
-            list_unpacked_ips.append([start_ip, end_ip, iprange_to_cidr(start_ip, end_ip)])
+            list_unpacked_ips.append({"start":start_ip,"end":end_ip,"cidr":ip_utils.iprange_to_cidr(start_ip, end_ip),
+                                        "start_int":ip_utils.ip2int(start_ip),"end_int":ip_utils.ip2int(end_ip)})
 
         patternPrefixCommaSeparated = re.compile('^\s*([1-9][0-9]{10,11})\s*$')
         resultPrefixCommaSeparated = patternPrefixCommaSeparated.match(i)
         if resultPrefixCommaSeparated:
             inner_matches["commaseparated"] = True
-            ip_trsfrmd = correctMatchedPrefix(i)
-            list_unpacked_ips.append(ip_trsfrmd, ip_trsfrmd, 32)
+            ip_trsfrmd = ip_utils.correctMatchedPrefix(i)
+            list_unpacked_ips.append({"start":ip_trsfrmd,"end":ip_trsfrmd,"cidr":32,
+                                        "start_int":ip_utils.ip2int(ip_trsfrmd),"end_int":ip_utils.ip2int(ip_trsfrmd)})
 
         patternBindestrich = re.compile(
             '^\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})-([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\s*$')
@@ -454,7 +342,8 @@ def process_ip_field_per_row(field):
             inner_matches["bindestrich"] = True
             start_ip_b = resultBindestrich.group(1)
             end_ip_b = resultBindestrich.group(2)
-            list_unpacked_ips.append([start_ip_b, end_ip_b, iprange_to_cidr(start_ip_b, end_ip_b)])
+            list_unpacked_ips.append({"start":start_ip_b,"end":end_ip_b,"cidr":ip_utils.iprange_to_cidr(start_ip_b, end_ip_b),
+                                        "start_int":ip_utils.ip2int(start_ip_b),"end_int":ip_utils.ip2int(end_ip_b)})
 
         if not any(inner_matches.values()) and not (i.find("Same as the App") != -1) and not len(i) == 0:
             logging.getLogger("parseip").log(level=logging.INFO, msg="no regex match for element:%s IPs:%s" % (i, field))
@@ -476,9 +365,9 @@ def process_ip_field_per_row(field):
 # unpacks a range of ip addresses, start,end given as a string
 def map_range_to_single_ip(start_ip, end_ip):
     list_unpacked_ips = []
-    for j in range(ipaddress_to_integer(start_ip),
-                   ipaddress_to_integer(end_ip) + 1):
-        list_unpacked_ips.append(integer_to_ipaddress(j))
+    for j in range(ip_utils.ip2int(start_ip),
+                   ip_utils.ip2int(end_ip) + 1):
+        list_unpacked_ips.append(ip_utils.int2ip(j))
     return list_unpacked_ips
 
 

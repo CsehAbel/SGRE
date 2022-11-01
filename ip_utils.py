@@ -11,12 +11,19 @@ def netmask_to_cidr(netmask):
     return sum([bin(int(x)).count('1') for x in netmask.split('.')])
 
 def ip2int(addr):
-    return struct.unpack("!I", socket.inet_aton(addr))[0]
+    # convert decimal dotted quad string to long integer"
+    # @ is native, ! is big-endian, native didnt work" \
+    # returned the octects reversed main.integerToDecimalDottedQuad(main.decimalDottedQuadToInteger('149.246.14.224'))"
+    ip_as_int = struct.unpack('!i', socket.inet_aton(addr))[0]
+    if ip_as_int < 0:
+        ip_as_int = ip_as_int + 2 ** 32
+    return ip_as_int
 
 def int2ip(addr):
-    return socket.inet_ntoa(struct.pack("!I", addr))
-
-
+    return (str((0xff000000 & addr) >> 24) + '.' +
+            str((0x00ff0000 & addr) >> 16) + '.' +
+            str((0x0000ff00 & addr) >> 8) + '.' +
+            str((0x000000ff & addr)))
 
 def cidr_to_netmask(cidr):
   cidr = int(cidr)
@@ -110,3 +117,29 @@ def ip_range_explode(ip,netmask):
                            int2ip(int_prefix_top)) + 1):
             list_unpacked_ips.append(int2ip(j))
         return list_unpacked_ips
+
+def iprange_to_cidr(inet_start, inet_stop):
+    # convert the first ip of the range to an integer
+    start = ip2int(inet_start)
+    # convert the last ip of the range to an integer
+    stop = ip2int(inet_stop)
+    # calculate the difference between the two integers
+    # the number of bits needed to represent the difference subtracted from 32 is the cidr
+    diff = stop - start
+    # calculate the number of bits needed to represent the difference
+    bits = math.ceil(math.log(diff, 2))
+    # calculate the cidr
+    cidr = 32 - bits
+    return cidr
+
+def base_cidr_to_range(prefix2,cidr2):
+            base = int2ip(
+                ip2int(prefix2) & makeIntegerMask(
+                    cidr2))
+            if base != prefix2:
+                print("Not a network Adresse (possible ip base %s)" % base)
+
+            int_prefix_top = (~makeIntegerMask(
+                cidr2)) | ip2int(prefix2)
+            prefix_top = int2ip(int_prefix_top)
+            return base,prefix_top
