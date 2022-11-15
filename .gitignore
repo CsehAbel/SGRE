@@ -2,5 +2,7 @@ secrets.py
 *se_ruleset*
 *_ruleset_*
 __pycache__/**
-Darwin_Whitelist_*
-darwin_whitelist_unpacked_*
+QualityCheck*
+qualitycheck_unpacked_*
+logs/**
+!logs/gitkeep
