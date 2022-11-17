@@ -114,7 +114,7 @@ def get_processed_qc_as_list(filepath_qc):
     list_dict_outer=[]
 
     for index, row in attachment_qc.iterrows():
-        pattern = re.compile('^\s*(\d+)\s*$') 
+        pattern = re.compile('^\s*([^\s]{32})\s*$') 
         try:
             result = pattern.match(row["app_id"]) if not pandas.isnull(row["app_id"]) else False
             if not result or pandas.isnull(row["app_id"]):
