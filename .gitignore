@@ -1,6 +1,7 @@
 secrets.py
 *se_ruleset*
-*_ruleset_*
+*ruleset*
 __pycache__/**
 logs/**
 !logs/gitkeep
+

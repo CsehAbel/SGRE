@@ -14,7 +14,11 @@ def ip2int(addr):
     # convert decimal dotted quad string to long integer"
     # @ is native, ! is big-endian, native didnt work" \
     # returned the octects reversed main.integerToDecimalDottedQuad(main.decimalDottedQuadToInteger('149.246.14.224'))"
-    ip_as_int = struct.unpack('!i', socket.inet_aton(addr))[0]
+    try:
+        ip_as_int = struct.unpack('!i', socket.inet_aton(addr))[0]
+    except OSError as e:
+        raise e
+
     if ip_as_int < 0:
         ip_as_int = ip_as_int + 2 ** 32
     return ip_as_int

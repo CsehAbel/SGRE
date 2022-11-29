@@ -112,32 +112,28 @@ def get_processed_qc_as_list(filepath_qc):
                                       engine='openpyxl')
     list_dict_transformed_outer = []
     list_dict_outer=[]
-    # use for capturing ip,ip/mask,ip.ip.ip.ip-ip
-    for index, row in attachment_qc.iterrows():
 
-        # regex pattern for integer, match row[APP_ID] with pattern, if no match then print error
-        pattern = re.compile('^\s*(\d+)\s*$')
-        # result = pattern.match(row["APP ID"])
-        # surrounding with try except block to catch errors
+    for index, row in attachment_qc.iterrows():
+        pattern = re.compile('^\s*([0-9]+)\s*$') 
         try:
-            result = pattern.match(row["APP ID"]) if not pandas.isnull(row["APP ID"]) else False
-            if not result or pandas.isnull(row["APP ID"]):
+            result = pattern.match(row["app_id"]) if not pandas.isnull(row["app_id"]) else False
+            if not result or pandas.isnull(row["app_id"]):
                 # print error with index
-                logging.getLogger("appid").log(level=logging.WARNING,msg="Error in row " + str(index) + ": APP ID is not an integer:" + str(row["APP ID"]))
+                logging.getLogger("appid").log(level=logging.WARNING,msg="Error in row " + str(index) + ": APP ID is not an integer:" + str(row["app_id"]))
         except:
-            logging.getLogger("appid").log(level=logging.ERROR,msg="Error in row " + str(index) + ": APP ID is baad:" + str(row["APP ID"]))
+            logging.getLogger("appid").log(level=logging.ERROR,msg="Error in row " + str(index) + ": APP ID is baad:" + str(row["app_id"]))
 
         #check if AppName is not an empty string or empty, if empty then print error
-        if not row["AppName"]:
-            logging.getLogger("appname").log(level=logging.INFO,msg="Error in row " + str(index) + ": AppName is empty:" + str(row["AppName"]))
+        if not row["app_name"]:
+            logging.getLogger("appname").log(level=logging.INFO,msg="Error in row " + str(index) + ": AppName is empty:" + str(row["app_name"]))
 
-        tsa = parse(row["TSA expiration date"])
+        tsa = parse(row["tsa"])
         if tsa == datetime.datetime.max.date():
-            logging.getLogger("tsa").log(level=logging.INFO,msg="Error in row " + str(index) + ": TSA expiration date is not a date:" + str(row["TSA expiration date"]))
+            logging.getLogger("tsa").log(level=logging.INFO,msg="Error in row " + str(index) + ": TSA expiration date is not a date:" + str(row["tsa"]))
 
         # each field can contain multiple ips or ip ranges, separated by ; or \n
         # returns list of [start,end,cidr]
-        field = row["Destination IPs"]
+        field = row["ip"]
         list_unpacked_ips = process_ip_field_per_row(field)
         # for each element in list_unpacked_ips create a new dictinary, with [start,end,cidr] and
         # row values and tsa, and append to list_dict_transformed
@@ -155,9 +151,9 @@ def get_processed_qc_as_list(filepath_qc):
 
 
 # ToDO do an assert to count rows in the database table
-def dict_to_sql(list_unpacked_ips):
+def dict_to_sql(list_unpacked_ips,db_name):
     sqlEngine = create_engine(
-        'mysql+pymysql://%s:%s@%s/%s' % (secrets.mysql_u, secrets.mysql_pw, "127.0.0.1", "CSV_DB"),
+        'mysql+pymysql://%s:%s@%s/%s' % (secrets.mysql_u, secrets.mysql_pw, "127.0.0.1", db_name),
         pool_recycle=3600)
     metadata_obj = MetaData()
     ruleset_table = drop_and_create_ruleset_table(metadata_obj, sqlEngine)
@@ -229,9 +225,8 @@ def create_dictionary(list_unpacked_ips, row, tsa):
             if not isinstance(i["cidr"], int):
                 print("cidr is not a string: " + str(i["cidr"]))
                 raise TypeError
-            #row["Destination FQDNs"]
-            #truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else NaN
-            truncate_fqdns = str(row["Destination FQDNs"])[:254] if row["Destination FQDNs"] else None
+
+            truncate_fqdns = str(row["fqdns"])[:254] if row["fqdns"] else None
             dict_transformed = {"ip": ip,
                                 "start": i["start"],
                                 "end": i["end"],
@@ -240,8 +235,8 @@ def create_dictionary(list_unpacked_ips, row, tsa):
                                 "cidr": i["cidr"],
                                 "fqdns": truncate_fqdns,
                                 "tsa": tsa,
-                                "app_name": row["AppName"],
-                                "app_id": row["APP ID"]
+                                "app_name": row["app_name"],
+                                "app_id": row["app_id"]
                                 }
             list_dict_transformed_inner.append(dict_transformed)
         list_dict_transformed.extend(list_dict_transformed_inner)
@@ -255,9 +250,7 @@ def create_dictionary_asis(list_unpacked_ips, row, tsa):
         if not isinstance(i["cidr"], int):
             print("cidr is not a string: " + str(i["cidr"]))
             raise TypeError
-        #row["Destination FQDNs"]
-        #truncate_fqdns = row["Destination FQDNs"][:254] if row["Destination FQDNs"] else NaN
-        truncate_fqdns = str(row["Destination FQDNs"])[:254] if row["Destination FQDNs"] else None
+        truncate_fqdns = str(row["fqdns"])[:254] if row["fqdns"] else None
         dict_transformed = {
                             "start": i["start"],
                             "end": i["end"],
@@ -266,8 +259,8 @@ def create_dictionary_asis(list_unpacked_ips, row, tsa):
                             "cidr": i["cidr"],
                             "fqdns": truncate_fqdns,
                             "tsa": tsa,
-                            "app_name": row["AppName"],
-                            "app_id": row["APP ID"]
+                            "app_name": row["app_name"],
+                            "app_id": row["app_id"]
                             }
         list_dict.append(dict_transformed)
     return list_dict

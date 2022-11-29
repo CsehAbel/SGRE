@@ -58,8 +58,8 @@ class TestMain(TestCase):
         filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
         list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
-        unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer)
+        unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer,db_name=self.__class__.db_name)
         row2=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
-        self.assertTrue(row1<row2)
+        self.assertTrue(row1!=row2)
         # assert  that logs/insert_ruleset.log is empty
         self.assertTrue(Path("logs/insert_ruleset.log").stat().st_size == 0)
