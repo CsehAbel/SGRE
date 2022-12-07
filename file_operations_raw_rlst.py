@@ -59,7 +59,10 @@ def one_file_found_in_folder(filepath_list, project_dir, pttrn_snic):
         raise ValueError(project_dir.name+": more than one file matching "+pttrn_snic.pattern)
 
 def remove_files_in_project_dir(pttrn_ruleset):
-    for x in project_dir.iterdir():
+    remove_files_in_dir(pttrn_ruleset,project_dir)
+
+def remove_files_in_dir(pttrn_ruleset,dir):
+    for x in dir.iterdir():
         if pttrn_ruleset.match(x.name):
             unlink_file(x.resolve().__str__(),x.name,x)
             print("%s unlinked" %x.resolve().__str__())
