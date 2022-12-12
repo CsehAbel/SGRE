@@ -27,16 +27,15 @@ def search_newest_in_folder(dir, pttrn):
     newest_tar_gz = max(stats, key=lambda x: x.stat().st_mtime)
     return newest_tar_gz
 
-def unlink_file(check_if_exists_path, print_out_path, to_be_unlinked_file):
+def unlink_file(to_be_unlinked_file):
     try:
         to_be_unlinked_file.unlink()
-        print("%s unlinked" % check_if_exists_path)
+        print("%s unlinked" % to_be_unlinked_file.name)
     except FileNotFoundError:
-        print("%s not found" % check_if_exists_path)
-    exists_still = Path(check_if_exists_path).is_file()
+        print("%s not found" % to_be_unlinked_file.name)
+    exists_still = to_be_unlinked_file.is_file()
     if exists_still:
-        raise RuntimeError("files %s to be deleted form %s still exists" % (print_out_path, project_dir.name))
-
+        raise RuntimeError("files %s to be deleted still exists" % to_be_unlinked_file.name)
 
 def rename_darwin_transform_json():
     source=Path("new_transform.json")
@@ -59,9 +58,12 @@ def one_file_found_in_folder(filepath_list, project_dir, pttrn_snic):
         raise ValueError(project_dir.name+": more than one file matching "+pttrn_snic.pattern)
 
 def remove_files_in_project_dir(pttrn_ruleset):
-    for x in project_dir.iterdir():
-        if pttrn_ruleset.match(x.name):
-            unlink_file(x.resolve().__str__(),x.name,x)
+    remove_files_in_dir(pttrn_ruleset,project_dir)
+
+def remove_files_in_dir(pttrn,dir):
+    for x in dir.iterdir():
+        if pttrn.match(x.name):
+            unlink_file(x)
             print("%s unlinked" %x.resolve().__str__())
 
 def copy_raw_to_local_dir():
@@ -71,6 +73,3 @@ def copy_raw_to_local_dir():
     shutil.copy(src=newest_rlst,
                 dst=Path("./") / newest_rlst.name)
     print(newest_rlst.name + " copied to project_dir.")
-
-if __name__=="__main__":
-    main()

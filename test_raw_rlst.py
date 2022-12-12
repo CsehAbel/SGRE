@@ -47,6 +47,8 @@ class TestMain(TestCase):
 
     # remove raw QualityCheck
     def test_save_to_sql(self):
+        pttrn_logs = re.compile("^.*\.log$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn_logs,Path("./logs"))
         logger_insert_ruleset = unpack_raw_rlst.setup_logger(name="insert_ruleset", log_file="logs/insert_ruleset.log",
                                                              level=logging.INFO)
         logger_excel = unpack_raw_rlst.setup_logger(name="logger_excel", log_file="logs/save_to_xlsx.log",
