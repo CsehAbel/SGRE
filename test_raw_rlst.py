@@ -30,6 +30,8 @@ class TestMain(TestCase):
         file_operations_raw_rlst.copy_raw_to_local_dir(dir=seruleset_dir, pttrn=pttrn_rlst)
 
     def test_save_to_xlsx(self):
+        pttrn_logs = re.compile("^.*\.log$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn_logs,Path("./logs"))
         logger_insert_ruleset = unpack_raw_rlst.setup_logger(name="insert_ruleset", log_file="logs/insert_ruleset.log",
                                                              level=logging.ERROR)
         logger_excel = unpack_raw_rlst.setup_logger(name="logger_excel", log_file="logs/save_to_xlsx.log",
