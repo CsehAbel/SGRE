@@ -11,14 +11,11 @@ import unpack_raw_rlst
 class TestMain(TestCase):
     db_name = "FOKUS_DB"
 
-    # remove raw QualityCheck
-    
     def test_remove_raw(self):
         pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
         file_operations_raw_rlst.remove_files_in_project_dir(
             pttrn_ruleset=pttrn_rlst)
-    
-    # remove unpacked QualityCheck
+
     def test_remove_unpacked(self):
         pttrn_rlst = re.compile("^fokus_whitelist_unpacked_.+\.xlsx$")
         file_operations_raw_rlst.remove_files_in_project_dir(
@@ -49,8 +46,9 @@ class TestMain(TestCase):
         # assert that logs/save_to_xlsx.log is empty
         self.assertTrue(Path("logs/save_to_xlsx.log").stat().st_size == 0)
 
-    # remove raw QualityCheck
     def test_save_to_sql(self):
+        pttrn_logs = re.compile("^.*\.log$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn_logs, dir=Path("./logs"))
         logger_insert_ruleset = unpack_raw_rlst.setup_logger(name="insert_ruleset", log_file="logs/insert_ruleset.log",
                                                              level=logging.INFO)
         logger_excel = unpack_raw_rlst.setup_logger(name="logger_excel", log_file="logs/save_to_xlsx.log",
@@ -64,8 +62,8 @@ class TestMain(TestCase):
         filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
         list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
-        unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer,db_name="FOKUS_DB")
+        unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer,db_name=self.__class__.db_name)
         row2=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
-        self.assertTrue(row1<row2)
+        self.assertTrue(row1!=row2)
         # assert  that logs/insert_ruleset.log is empty
         self.assertTrue(Path("logs/insert_ruleset.log").stat().st_size == 0)
