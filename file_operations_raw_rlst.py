@@ -66,8 +66,8 @@ def remove_files_in_dir(pttrn,dir):
             unlink_file(x)
             print("%s unlinked" %x.resolve().__str__())
 
-def copy_raw_to_local_dir(dir, pttrn):
+def copy_raw_to_dst(dir: Path, pttrn, dst: Path):
     newest_rlst = search_newest_in_folder(dir,pttrn)
     shutil.copy(src=newest_rlst,
-                dst=Path("./") / newest_rlst.name)
-    print(newest_rlst.name + " copied to project_dir.")
+                dst=dst / newest_rlst.name)
+    print(newest_rlst.name + " copied to dst{0}.".format(dst))

@@ -12,19 +12,17 @@ class TestMain(TestCase):
     db_name = "FOKUS_DB"
 
     def test_remove_raw(self):
-        pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
-        file_operations_raw_rlst.remove_files_in_project_dir(
-            pttrn_ruleset=pttrn_rlst)
+        pttrn = re.compile("^QualityCheck.+\.xlsx$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn,dir=Path("files"))
 
     def test_remove_unpacked(self):
-        pttrn_rlst = re.compile("^fokus_whitelist_unpacked_.+\.xlsx$")
-        file_operations_raw_rlst.remove_files_in_project_dir(
-            pttrn_ruleset=pttrn_rlst)
+        pttrn = re.compile("^fokus_whitelist_unpacked_.+\.xlsx$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn,dir=Path("files"))
 
     def test_copy_raw_to_local_dir(self):
         seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Fokus/Quality Check/")
         pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
-        file_operations_raw_rlst.copy_raw_to_local_dir(dir=seruleset_dir, pttrn=pttrn_rlst)
+        file_operations_raw_rlst.copy_raw_to_dst(dir=seruleset_dir, pttrn=pttrn_rlst, dst=Path("files"))
 
     def test_save_to_xlsx(self):
         pttrn_logs = re.compile("^.*\.log$")
@@ -59,7 +57,7 @@ class TestMain(TestCase):
         logger_tsa = unpack_raw_rlst.setup_logger(name="tsa", log_file="logs/tsa.log", level=logging.INFO)
         row1=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
         pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
-        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
+        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("files"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
         list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
         unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer,db_name=self.__class__.db_name)
