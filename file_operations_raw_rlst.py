@@ -66,10 +66,8 @@ def remove_files_in_dir(pttrn,dir):
             unlink_file(x)
             print("%s unlinked" %x.resolve().__str__())
 
-def copy_raw_to_local_dir():
-    seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Darwin/")
-    pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
-    newest_rlst = search_newest_in_folder(seruleset_dir, pttrn_rlst)
+def copy_raw_to_local_dir(dir, pttrn, dst):
+    newest_rlst = search_newest_in_folder(dir, pttrn)
     shutil.copy(src=newest_rlst,
-                dst=Path("./") / newest_rlst.name)
-    print(newest_rlst.name + " copied to project_dir.")
+                dst=dst / newest_rlst.name)
+    print(newest_rlst.name + " copied to dst.")

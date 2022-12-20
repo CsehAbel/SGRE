@@ -6,3 +6,5 @@ QualityCheck*
 qualitycheck_unpacked_*
 logs/**
 !logs/gitkeep
+files/**
+!files/gitkeep

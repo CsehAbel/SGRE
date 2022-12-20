@@ -14,18 +14,18 @@ class TestMain(TestCase):
     # remove raw QualityCheck
     
     def test_remove_raw(self):
-        pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
-        file_operations_raw_rlst.remove_files_in_project_dir(
-            pttrn_ruleset=pttrn_rlst)
+        pttrn = re.compile("^QualityCheck.+\.xlsx$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn, dir="files")
     
     # remove unpacked QualityCheck
     def test_remove_unpacked(self):
-        pttrn_rlst = re.compile("^darwin_whitelist_unpacked_.+\.xlsx$")
-        file_operations_raw_rlst.remove_files_in_project_dir(
-            pttrn_ruleset=pttrn_rlst)
+        pttrn = re.compile("^darwin_whitelist_unpacked_.+\.xlsx$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn, dir="files")
 
     def test_copy_raw_to_local_dir(self):
-        file_operations_raw_rlst.copy_raw_to_local_dir()
+        dir=Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/Darwin/")
+        pttrn = re.compile("^QualityCheck.+\.xlsx$")
+        file_operations_raw_rlst.copy_raw_to_local_dir(dir=dir, pttrn=pttrn, dst=Path("files"))
 
     def test_save_to_xlsx(self):
         logger_insert_ruleset = unpack_raw_rlst.setup_logger(name="insert_ruleset", log_file="logs/insert_ruleset.log",
@@ -59,7 +59,7 @@ class TestMain(TestCase):
         logger_tsa = unpack_raw_rlst.setup_logger(name="tsa", log_file="logs/tsa.log", level=logging.INFO)
         row1=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
         pttrn_rlst = re.compile("^QualityCheck.+\.xlsx$")
-        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
+        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("files"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
         list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
         unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer)
