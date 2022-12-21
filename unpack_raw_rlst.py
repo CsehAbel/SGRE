@@ -107,14 +107,13 @@ class Tree:
         return self.size
 
 
-def get_processed_qc_as_list(filepath_qc):
-    attachment_qc = pandas.read_excel(filepath_qc, index_col=None, sheet_name="white_Apps", dtype=str,
+def get_processed_qc_as_list(sheet_name,filepath_qc,pattern):
+    attachment_qc = pandas.read_excel(filepath_qc, index_col=None, sheet_name=sheet_name, dtype=str,
                                       engine='openpyxl')
     list_dict_transformed_outer = []
     list_dict_outer=[]
 
     for index, row in attachment_qc.iterrows():
-        pattern = re.compile('^\s*([0-9]+)\s*$') 
         try:
             result = pattern.match(row["app_id"]) if not pandas.isnull(row["app_id"]) else False
             if not result or pandas.isnull(row["app_id"]):
@@ -140,13 +139,7 @@ def get_processed_qc_as_list(filepath_qc):
         list_dict= create_dictionary_asis(list_unpacked_ips, row, tsa)
         # append list_dict to list_dict_outer
         list_dict_outer.extend(list_dict)
-        # for each element in list_unpacked_ips create a new dictinary, with single ip,[start,end,cidr] and
-        # row values and tsa, and append to list_dict_transformed
-        #list_dict_transformed = create_dictionary(list_unpacked_ips, row, tsa)
-        # append list_dict_transformed to list_dict_transformed_outer
-        #list_dict_transformed_outer.extend(list_dict_transformed)
-
-    #return list_dict_transformed_outer
+      
     return list_dict_outer
 
 
@@ -250,6 +243,7 @@ def create_dictionary_asis(list_unpacked_ips, row, tsa):
         if not isinstance(i["cidr"], int):
             print("cidr is not a string: " + str(i["cidr"]))
             raise TypeError
+
         truncate_fqdns = str(row["fqdns"])[:254] if row["fqdns"] else None
         dict_transformed = {
                             "start": i["start"],

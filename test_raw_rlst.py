@@ -11,24 +11,22 @@ import unpack_raw_rlst
 class TestMain(TestCase):
     db_name = "CSV_DB"
 
-    # remove raw se_ruleset
     def test_remove_raw(self):
-        pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
-        file_operations_raw_rlst.remove_files_in_project_dir(
-            pttrn_ruleset=pttrn_rlst)
+        pttrn = re.compile("^.+se_ruleset.+\.xlsx$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn,dir=Path("files"))
 
-    #remove unpacked se_ruleset
     def test_remove_unpacked(self):
-        pttrn_output = re.compile("se_ruleset_unpacked.\d{2}[A-Za-z]{3}\d{4}\.xlsx$")
-        file_operations_raw_rlst.remove_files_in_project_dir(
-            pttrn_ruleset=pttrn_output)
+        pttrn = re.compile("se_ruleset_unpacked.\d{2}[A-Za-z]{3}\d{4}\.xlsx$")
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn,dir=Path("files"))
 
     def test_copy_raw_to_local_dir(self):
-        file_operations_raw_rlst.copy_raw_to_local_dir()
+        seruleset_dir = Path("/mnt/c/UserData/z004a6nh/Documents/OneDrive - Siemens AG/SEnergy/")
+        pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
+        file_operations_raw_rlst.copy_raw_to_dst(dir=seruleset_dir, pttrn=pttrn_rlst, dst=Path("files"))
 
     def test_save_to_xlsx(self):
         pttrn_logs = re.compile("^.*\.log$")
-        file_operations_raw_rlst.remove_files_in_dir(pttrn_ruleset=pttrn_logs, dir=Path("./logs"))
+        file_operations_raw_rlst.remove_files_in_dir(pttrn_logs,Path("./logs"))
         logger_insert_ruleset = unpack_raw_rlst.setup_logger(name="insert_ruleset", log_file="logs/insert_ruleset.log",
                                                              level=logging.ERROR)
         logger_excel = unpack_raw_rlst.setup_logger(name="logger_excel", log_file="logs/save_to_xlsx.log",
@@ -41,14 +39,14 @@ class TestMain(TestCase):
         pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
         filepath_qc = file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
-        list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
+        list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc,sheet_name="white_Apps",pattern=re.compile('^\s*([0-9]+)\s*$'))
         unpack_raw_rlst.save_to_xlsx(list_dict_transformed_outer=list_dict_transformed_outer, path_to_save=path_to_save)
         # assert that logs/save_to_xlsx.log is empty
         self.assertTrue(Path("logs/save_to_xlsx.log").stat().st_size == 0)
 
     def test_save_to_sql(self):
         pttrn_logs = re.compile("^.*\.log$")
-        file_operations_raw_rlst.remove_files_in_dir(pttrn_ruleset=pttrn_logs, dir=Path("./logs"))
+        file_operations_raw_rlst.remove_files_in_dir(pttrn=pttrn_logs, dir=Path("./logs"))
         logger_insert_ruleset = unpack_raw_rlst.setup_logger(name="insert_ruleset", log_file="logs/insert_ruleset.log",
                                                              level=logging.INFO)
         logger_excel = unpack_raw_rlst.setup_logger(name="logger_excel", log_file="logs/save_to_xlsx.log",
@@ -59,9 +57,9 @@ class TestMain(TestCase):
         logger_tsa = unpack_raw_rlst.setup_logger(name="tsa", log_file="logs/tsa.log", level=logging.INFO)
         row1=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
         pttrn_rlst = re.compile("^.+se_ruleset.+\.xlsx$")
-        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("./"), pttrn=pttrn_rlst)
+        filepath_qc=file_operations_raw_rlst.search_newest_in_folder(dir=Path("files"), pttrn=pttrn_rlst)
         print("Using " + filepath_qc.resolve().__str__())
-        list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc)
+        list_dict_transformed_outer = unpack_raw_rlst.get_processed_qc_as_list(filepath_qc=filepath_qc,sheet_name="white_Apps",pattern=re.compile('^\s*([0-9]+)\s*$'))
         unpack_raw_rlst.dict_to_sql(list_unpacked_ips=list_dict_transformed_outer,db_name=self.__class__.db_name)
         row2=sql_statements.get_row_count(table="ruleset",db_name=self.__class__.db_name)
         self.assertTrue(row1!=row2)
